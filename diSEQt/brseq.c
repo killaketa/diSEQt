@@ -1,0 +1,288 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "brseq.h"
+#include "brseq_commands.h"
+#include "rseq_parse.h"
+
+// Reads from StartBuffer until 0xFF, 0xFC, or 0xFD is hit (fin, loop_end, return commands)
+// Start at 0x0C because thats the end of the DATA Header (0x00: DATA, 0x04: Length of Section, 0x08: Offset to DATA from start of header (always 0x0C))
+char* decode_DATASection(brseq_t BRSEQ, LABLInfo_t LABL, FILE* TextStream, int* ImportantOffsets) {
+	unsigned int HighestOffset = 0;
+
+	for (unsigned int i2 = 0; i2 < LABL.LabelCount; i2++) {
+		if (LABL.Labels[i2].SndDATA_Offset > HighestOffset) {
+			HighestOffset = LABL.Labels[i2].SndDATA_Offset;
+		}
+	}
+
+	for (unsigned int i = 0; i < LABL.LabelCount; i++) {
+		fprintf(TextStream, "<newtrack name=\"%s\" dataoffset=\"%u\">\n", LABL.Labels[i].String, LABL.Labels[i].SndDATA_Offset);
+
+		int IsFin = 0;
+
+		for (unsigned int i2 = LABL.Labels[i].SndDATA_Offset + 0x0C; i2 < BRSEQ.DATA_Size; i2++) {
+			char* cmd;
+			unsigned char cmdbyte = BRSEQ.DATAStruct.DATA_Section[i2];
+
+			for (unsigned int i3 = 0; i3 < LABL.LabelCount; i3++) {
+				if ((i2 - 0x0C) == (LABL.Labels[i3].SndDATA_Offset) && i != i3 && (LABL.Labels[i].SndDATA_Offset) != (LABL.Labels[i3].SndDATA_Offset)) {
+					IsFin = 1;
+					break;
+				}
+			}
+
+			if (ImportantOffsets[i2] != 0 && IsFin == 0) {
+				fprintf(TextStream, "\t<offset name=\"%x\"/> ;; Offset %x\n", i2 - 0x0C, i2 - 0x0C);
+			}
+
+			if (IsFin == 0) {
+				decode_command(BRSEQ, &i2, &cmd, ImportantOffsets);
+				fprintf(TextStream, "\t%s\n", cmd);
+				free(cmd);
+			}
+			else {
+				break;
+			}
+
+			if ((cmdbyte == 0xFF | cmdbyte == 0xFD) && (i2 >= HighestOffset + 0x0C) && (BRSEQ.DATAStruct.DATA_Section[i2 + 1] == 0xFF)) {
+				IsFin = 1;
+			}
+
+		}
+		fprintf(TextStream, "</newtrack>\n\n");
+	}
+}
+
+char* predecode_DATASection(brseq_t BRSEQ, LABLInfo_t LABL, int* ImportantOffsets) {
+	unsigned int HighestOffset = 0;
+
+	for (unsigned int i2 = 0; i2 < LABL.LabelCount; i2++) {
+		if (LABL.Labels[i2].SndDATA_Offset > HighestOffset) {
+			HighestOffset = LABL.Labels[i2].SndDATA_Offset;
+		}
+	}
+	for (unsigned int i = 0; i < LABL.LabelCount; i++) {
+
+		int IsFin = 0;
+
+		for (unsigned int i2 = LABL.Labels[i].SndDATA_Offset + 0x0C; i2 < BRSEQ.DATA_Size; i2++) {
+			char* cmd;
+			unsigned char cmdbyte = BRSEQ.DATAStruct.DATA_Section[i2];
+
+			for (unsigned int i3 = 0; i3 < LABL.LabelCount; i3++) {
+				if ((i2 - 0x0C) == LABL.Labels[i3].SndDATA_Offset && i != i3) {
+					IsFin = 1;
+					break;
+				}
+			}
+
+			if (IsFin == 0) {
+				decode_command(BRSEQ, &i2, &cmd, ImportantOffsets);
+				free(cmd);
+			}
+			else {
+				break;
+			}
+
+			if ((cmdbyte == 0xFF | cmdbyte == 0xFD) && (i2 > HighestOffset + 0x0C) && (BRSEQ.DATAStruct.DATA_Section[i2 + 1] == 0xFF)) {
+				IsFin = 1;
+			}
+		}
+	}
+}
+
+LABLInfo_t decode_LABLSection(brseq_t BRSEQ, FILE* TextStream) {
+	LABLInfo_t LABL;
+	LABLInfo_t LABLOrdered;
+	LABL.LabelLength = BRSEQ.LABLStruct.LABL_Section[4] << 24 | BRSEQ.LABLStruct.LABL_Section[5] << 16 | BRSEQ.LABLStruct.LABL_Section[6] << 8 | BRSEQ.LABLStruct.LABL_Section[7];
+	LABL.LabelCount = BRSEQ.LABLStruct.LABL_Section[8] << 24 | BRSEQ.LABLStruct.LABL_Section[9] << 16 | BRSEQ.LABLStruct.LABL_Section[10] << 8 | BRSEQ.LABLStruct.LABL_Section[11];
+	LABL.Labels = calloc(LABL.LabelCount, sizeof(label_t));
+
+	LABLOrdered.LabelLength = BRSEQ.LABLStruct.LABL_Section[4] << 24 | BRSEQ.LABLStruct.LABL_Section[5] << 16 | BRSEQ.LABLStruct.LABL_Section[6] << 8 | BRSEQ.LABLStruct.LABL_Section[7];
+	LABLOrdered.LabelCount = BRSEQ.LABLStruct.LABL_Section[8] << 24 | BRSEQ.LABLStruct.LABL_Section[9] << 16 | BRSEQ.LABLStruct.LABL_Section[10] << 8 | BRSEQ.LABLStruct.LABL_Section[11];
+	LABLOrdered.Labels = calloc(LABL.LabelCount, sizeof(label_t));
+	unsigned int i;
+
+	for (i = 0; i < LABL.LabelCount; i++) {
+		// Offset to Label Data (relative to 0x08 from the start of LABL header)
+		LABL.Labels[i].LabelOffset = BRSEQ.LABLStruct.LABL_Section[0x0C + (i * 4)] << 24 | BRSEQ.LABLStruct.LABL_Section[0x0C + (i * 4) + 1] << 16 | BRSEQ.LABLStruct.LABL_Section[0x0C + (i * 4) + 2] << 8 | BRSEQ.LABLStruct.LABL_Section[0x0C + (i * 4) + 3];
+		LABL.Labels[i].LabelOffset += 0x08;
+		int i2;
+		LABL.Labels[i].SndDATA_Offset = BRSEQ.LABLStruct.LABL_Section[LABL.Labels[i].LabelOffset] << 24 | BRSEQ.LABLStruct.LABL_Section[LABL.Labels[i].LabelOffset + 1] << 16 | BRSEQ.LABLStruct.LABL_Section[LABL.Labels[i].LabelOffset + 2] << 8 | BRSEQ.LABLStruct.LABL_Section[LABL.Labels[i].LabelOffset + 3];
+		LABL.Labels[i].StringLen = BRSEQ.LABLStruct.LABL_Section[LABL.Labels[i].LabelOffset + 4] << 24 | BRSEQ.LABLStruct.LABL_Section[LABL.Labels[i].LabelOffset + 5] << 16 | BRSEQ.LABLStruct.LABL_Section[LABL.Labels[i].LabelOffset + 6] << 8 | BRSEQ.LABLStruct.LABL_Section[LABL.Labels[i].LabelOffset + 7];
+		if (LABL.Labels[i].StringLen > 100) {
+			printf("Label name is too long! Please make sure no Label name is over 100 characters.");
+			exit(0);
+		};
+		for (i2 = 0; i2 < LABL.Labels[i].StringLen; i2++) {
+			LABL.Labels[i].String[i2] = BRSEQ.LABLStruct.LABL_Section[LABL.Labels[i].LabelOffset + 8 + i2];
+		}
+	}
+
+	int min_elem;
+
+	for (i = 0; i < LABL.LabelCount-1; i++) {
+
+		min_elem = i;
+
+		for (unsigned int i2 = i + 1; i2 < LABL.LabelCount; i2++) {
+			if (LABL.Labels[min_elem].SndDATA_Offset > LABL.Labels[i2].SndDATA_Offset) {
+				min_elem = i2;
+			}
+		}
+
+		if (min_elem != i) {
+			label_t temp = LABL.Labels[min_elem];
+			LABL.Labels[min_elem] = LABL.Labels[i];
+			LABL.Labels[i] = temp;
+		}
+	}
+
+	for (i = 0; i < LABL.LabelCount; i++) {
+		printf("DATA Offset: %u, StringLen: %u, String: %s\n", LABL.Labels[i].SndDATA_Offset, LABL.Labels[i].StringLen, LABL.Labels[i].String);
+	}
+
+
+	return LABL;
+}
+
+char* decode_section_data(FILE* FileStream, unsigned char** Buffer, unsigned __int32 Offset, unsigned __int32 Size) {
+	*Buffer = calloc(Size,sizeof(char));
+	fseek(FileStream, Offset, SEEK_SET);
+	fread_s(*Buffer, Size * sizeof(char), Size * sizeof(char), 1, FileStream);
+	fseek(FileStream, 0, SEEK_SET);
+	if (*Buffer == NULL) {
+		printf("Null Section Data!");
+		exit(0);
+	}
+
+	return *Buffer;
+}
+
+brseq_t decode_sections(FILE* FileStream, FILE* TextStream) {
+	brseq_t BRSEQ = {.DATA_Offset = 0, .DATA_Size = 0, .LABL_Offset = 0, .LABL_Size = 0};
+	
+	// Get DATA Header offset & size
+	fseek(FileStream, 16, SEEK_SET);
+	fread_s(&BRSEQ.DATA_Offset, sizeof(unsigned __int32), sizeof(unsigned __int32), 1, FileStream);
+	fseek(FileStream, 20, SEEK_SET);
+	fread_s(&BRSEQ.DATA_Size, sizeof(unsigned __int32), sizeof(unsigned __int32), 1, FileStream);
+
+	// Get LABL Header offset & size
+	fseek(FileStream, 24, SEEK_SET);
+	fread_s(&BRSEQ.LABL_Offset, sizeof(unsigned __int32), sizeof(unsigned __int32), 1, FileStream);
+	fseek(FileStream, 28, SEEK_SET);
+	fread_s(&BRSEQ.LABL_Size, sizeof(unsigned __int32), sizeof(unsigned __int32), 1, FileStream);
+
+	// Byteswap all the retrieved data since fread_s stores it as Little Endian (x86 processors use Little Endian, MKW uses Big Endian)
+	BRSEQ.DATA_Offset = _byteswap_ulong(BRSEQ.DATA_Offset);
+	BRSEQ.DATA_Size = _byteswap_ulong(BRSEQ.DATA_Size);
+
+	BRSEQ.LABL_Offset = _byteswap_ulong(BRSEQ.LABL_Offset);
+	BRSEQ.LABL_Size = _byteswap_ulong(BRSEQ.LABL_Size);
+
+	decode_section_data(FileStream, &BRSEQ.DATAStruct.DATA_Section, BRSEQ.DATA_Offset, BRSEQ.DATA_Size);
+	decode_section_data(FileStream, &BRSEQ.LABLStruct.LABL_Section, BRSEQ.LABL_Offset, BRSEQ.LABL_Size);
+
+	printf("DATA Offset: %u, DATA Size: %u, LABL Offset: %u, LABL Size: %u\n\n", BRSEQ.DATA_Offset, BRSEQ.DATA_Size, BRSEQ.LABL_Offset, BRSEQ.LABL_Size);
+
+	fseek(FileStream, 0x04, SEEK_SET);
+	fread_s(&BRSEQ.EndianBytes[0], sizeof(unsigned char), sizeof(unsigned char), 1, FileStream);
+	fseek(FileStream, 0x05, SEEK_SET);
+	fread_s(&BRSEQ.EndianBytes[1], sizeof(unsigned char), sizeof(unsigned char), 1, FileStream);
+	fprintf(TextStream, "// Endian: %02x%02x\n", BRSEQ.EndianBytes[0], BRSEQ.EndianBytes[1]);
+
+	return BRSEQ;
+}
+
+brseq_t decode_brseq(const char* FilePath, char* DestTextPath) {
+	int i;
+	char* PeriodPtr = strrchr(FilePath, '.');
+
+	if (DestTextPath == NULL) {
+		perror("DestTextPath is NULL! You must provide a destination path as a 3rd argument to the executable.");
+		exit(0);
+	}
+
+	if (strncmp(PeriodPtr + 1, "brseq", 6) != 0) {
+		perror("Invalid File Type! You can decode BRSEQ files only.");
+		exit(0);
+	}
+
+	FILE* FStream;
+	fopen_s(&FStream, FilePath, "rb");
+	if (FStream == NULL) {
+		perror("Invalid File Path to BRSEQ! fopen_s() failed");
+		exit(-1);
+	}
+
+	FILE* TextStream;
+	fopen_s(&TextStream, DestTextPath, "w");
+	if (TextStream == NULL) {
+		perror("Invalid File Path to XMLSeq! fopen_s() failed.");
+		exit(-1);
+	}
+
+	fprintf(TextStream, "// Created by BRSEQSuite\n// Program made by Keta\n\n");
+
+
+	brseq_t BRSEQ = decode_sections(FStream, TextStream); // Write BOM (whether file uses Big or Little Endian) plus other RSEQ header bs to the TextStream before passing to decode_LABLSection.
+	fclose(FStream);
+
+	LABLInfo_t LABL = decode_LABLSection(BRSEQ, TextStream);
+
+	// Print LABL info to the file
+	fprintf(TextStream, "// Label Count: %u\n", LABL.LabelCount);
+	fprintf(TextStream, "// Label Length: %u\n\n", LABL.LabelLength);
+
+	int* ImportantOffsets = calloc(BRSEQ.DATA_Size, sizeof(int));
+	predecode_DATASection(BRSEQ, LABL, ImportantOffsets);
+	decode_DATASection(BRSEQ, LABL, TextStream, ImportantOffsets);
+
+	fclose(TextStream);
+	free(LABL.Labels);
+	free(ImportantOffsets);
+
+	return BRSEQ;
+}
+
+
+brseq_t encode_brseq(char* TextFilePath, char* DestBRSEQPath) {
+	int i;
+
+	if (DestBRSEQPath == NULL) {
+		perror("DestBRSEQPath is NULL! You must provide a destination path as a 3rd argument to the executable.");
+		exit(0);
+	}
+
+	FILE* TextStream;
+	fopen_s(&TextStream, TextFilePath, "r");
+	if (TextStream == NULL) {
+		perror("Invalid File Path to XMLSeq! fopen_s() failed.");
+		exit(-1);
+	}
+
+	FILE* ByteStream;
+	fopen_s(&ByteStream, DestBRSEQPath, "wb+");
+	if (ByteStream == NULL) {
+		perror("ByteStream is NULL! fopen_s() failed.");
+		exit(-1);
+	}
+
+
+	//THE PLAN:
+	//Make BRSEQ struct, initialize it with 0.
+	//parse and encode the TextStream but dont write the data to get sizes, would be offsets, and command offsets for replacement (replacing jump/call/opentrack offsets with the new ones).
+	//make RSEQ, and DATA headers on the ByteStream
+	//parse, encode, and write the TextStream to the ByteStream
+	//make LABL header on the ByteStream
+	DATA_t DATAStruct = { .DATAHeaderStr = "DATA", .DATA_Offset = _byteswap_ulong(0x0C), .DATA_Section = 0, .DATA_Size = 0};
+	LABL_t LABLStruct = { .LABLHeaderStr = "LABL", .LABL_Offset = 0, .LABL_Section = 0, .LABL_Size = 0 };
+	brseq_t BRSEQ = { .RSEQHeaderStr = "RSEQ", .EndianBytes = {0xfe,0xff}, .VersionNum = 1, .FileLength = 0, .RSEQ_Size = _byteswap_ushort(0x20), .NumberOfSections = _byteswap_ushort(2), .DATA_Offset = _byteswap_ulong(0x20), .DATA_Size = 0, .LABL_Offset = 0, .LABL_Size = 0, .DATAStruct = DATAStruct, .LABLStruct = LABLStruct};
+	
+	parse_textstream(TextStream, ByteStream, BRSEQ);
+
+
+	return BRSEQ;
+}
