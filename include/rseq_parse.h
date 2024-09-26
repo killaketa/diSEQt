@@ -1,5 +1,6 @@
 #ifndef RSEQPARSEHEADER // Don't want to load this multiple times since this file is called in multiple places.
 #define RSEQPARSEHEADER
+#include "brseq.h"
 
 // Used to store the offsets of offset tags 
 typedef struct {

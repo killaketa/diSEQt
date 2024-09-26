@@ -4,6 +4,7 @@
 #include "brseq.h"
 #include "brseq_commands.h"
 #include "rseq_parse.h"
+#include "common.h"
 
 // Reads from StartBuffer until 0xFF, 0xFC, or 0xFD is hit (fin, loop_end, return commands)
 // Start at 0x0C because thats the end of the DATA Header (0x00: DATA, 0x04: Length of Section, 0x08: Offset to DATA from start of header (always 0x0C))
@@ -147,10 +148,10 @@ LABLInfo_t decode_LABLSection(brseq_t BRSEQ, FILE* TextStream) {
 	return LABL;
 }
 
-char* decode_section_data(FILE* FileStream, unsigned char** Buffer, unsigned __int32 Offset, unsigned __int32 Size) {
+char* decode_section_data(FILE* FileStream, unsigned char** Buffer, uint32_t Offset, uint32_t Size) {
 	*Buffer = calloc(Size,sizeof(char));
 	fseek(FileStream, Offset, SEEK_SET);
-	fread_s(*Buffer, Size * sizeof(char), Size * sizeof(char), 1, FileStream);
+	fread(*Buffer, Size * sizeof(char), 1, FileStream);
 	fseek(FileStream, 0, SEEK_SET);
 	if (*Buffer == NULL) {
 		printf("Null Section Data!");
@@ -165,22 +166,22 @@ brseq_t decode_sections(FILE* FileStream, FILE* TextStream) {
 	
 	// Get DATA Header offset & size
 	fseek(FileStream, 16, SEEK_SET);
-	fread_s(&BRSEQ.DATA_Offset, sizeof(unsigned __int32), sizeof(unsigned __int32), 1, FileStream);
+	fread(&BRSEQ.DATA_Offset, sizeof(uint32_t), 1, FileStream);
 	fseek(FileStream, 20, SEEK_SET);
-	fread_s(&BRSEQ.DATA_Size, sizeof(unsigned __int32), sizeof(unsigned __int32), 1, FileStream);
+	fread(&BRSEQ.DATA_Size, sizeof(uint32_t), 1, FileStream);
 
 	// Get LABL Header offset & size
 	fseek(FileStream, 24, SEEK_SET);
-	fread_s(&BRSEQ.LABL_Offset, sizeof(unsigned __int32), sizeof(unsigned __int32), 1, FileStream);
+	fread(&BRSEQ.LABL_Offset, sizeof(uint32_t), 1, FileStream);
 	fseek(FileStream, 28, SEEK_SET);
-	fread_s(&BRSEQ.LABL_Size, sizeof(unsigned __int32), sizeof(unsigned __int32), 1, FileStream);
+	fread(&BRSEQ.LABL_Size, sizeof(uint32_t), 1, FileStream);
 
 	// Byteswap all the retrieved data since fread_s stores it as Little Endian (x86 processors use Little Endian, MKW uses Big Endian)
-	BRSEQ.DATA_Offset = _byteswap_ulong(BRSEQ.DATA_Offset);
-	BRSEQ.DATA_Size = _byteswap_ulong(BRSEQ.DATA_Size);
+	BRSEQ.DATA_Offset = byteswap32(BRSEQ.DATA_Offset);
+	BRSEQ.DATA_Size = byteswap32(BRSEQ.DATA_Size);
 
-	BRSEQ.LABL_Offset = _byteswap_ulong(BRSEQ.LABL_Offset);
-	BRSEQ.LABL_Size = _byteswap_ulong(BRSEQ.LABL_Size);
+	BRSEQ.LABL_Offset = byteswap32(BRSEQ.LABL_Offset);
+	BRSEQ.LABL_Size = byteswap32(BRSEQ.LABL_Size);
 
 	decode_section_data(FileStream, &BRSEQ.DATAStruct.DATA_Section, BRSEQ.DATA_Offset, BRSEQ.DATA_Size);
 	decode_section_data(FileStream, &BRSEQ.LABLStruct.LABL_Section, BRSEQ.LABL_Offset, BRSEQ.LABL_Size);
@@ -188,9 +189,9 @@ brseq_t decode_sections(FILE* FileStream, FILE* TextStream) {
 	printf("DATA Offset: %u, DATA Size: %u, LABL Offset: %u, LABL Size: %u\n\n", BRSEQ.DATA_Offset, BRSEQ.DATA_Size, BRSEQ.LABL_Offset, BRSEQ.LABL_Size);
 
 	fseek(FileStream, 0x04, SEEK_SET);
-	fread_s(&BRSEQ.EndianBytes[0], sizeof(unsigned char), sizeof(unsigned char), 1, FileStream);
+	fread(&BRSEQ.EndianBytes[0], sizeof(unsigned char), 1, FileStream);
 	fseek(FileStream, 0x05, SEEK_SET);
-	fread_s(&BRSEQ.EndianBytes[1], sizeof(unsigned char), sizeof(unsigned char), 1, FileStream);
+	fread(&BRSEQ.EndianBytes[1], sizeof(unsigned char), 1, FileStream);
 	fprintf(TextStream, "// Endian: %02x%02x\n", BRSEQ.EndianBytes[0], BRSEQ.EndianBytes[1]);
 
 	return BRSEQ;
@@ -199,6 +200,7 @@ brseq_t decode_sections(FILE* FileStream, FILE* TextStream) {
 brseq_t decode_brseq(const char* FilePath, char* DestTextPath) {
 	int i;
 	char* PeriodPtr = strrchr(FilePath, '.');
+	char* DestPeriodPtr = strrchr(DestTextPath, '.');
 
 	if (DestTextPath == NULL) {
 		perror("DestTextPath is NULL! You must provide a destination path as a 3rd argument to the executable.");
@@ -210,17 +212,20 @@ brseq_t decode_brseq(const char* FilePath, char* DestTextPath) {
 		exit(0);
 	}
 
-	FILE* FStream;
-	fopen_s(&FStream, FilePath, "rb");
+	if (strncmp(DestPeriodPtr + 1, "xmlseq", 7) != 0) {
+		perror("Invalid File Type! Output file must be filetype xmlseq.");
+		exit(0);
+	}
+
+	FILE* FStream = fopen(FilePath, "rb");
 	if (FStream == NULL) {
-		perror("Invalid File Path to BRSEQ! fopen_s() failed");
+		perror("Invalid File Path to BRSEQ! fopen() failed");
 		exit(-1);
 	}
 
-	FILE* TextStream;
-	fopen_s(&TextStream, DestTextPath, "w");
+	FILE* TextStream = fopen(DestTextPath, "w");
 	if (TextStream == NULL) {
-		perror("Invalid File Path to XMLSeq! fopen_s() failed.");
+		perror("Invalid File Path to XMLSeq! fopen() failed.");
 		exit(-1);
 	}
 
@@ -250,23 +255,33 @@ brseq_t decode_brseq(const char* FilePath, char* DestTextPath) {
 
 brseq_t encode_brseq(char* TextFilePath, char* DestBRSEQPath) {
 	int i;
+	char* PeriodPtr = strrchr(TextFilePath, '.');
+	char* DestPeriodPtr = strrchr(DestBRSEQPath, '.');
 
 	if (DestBRSEQPath == NULL) {
 		perror("DestBRSEQPath is NULL! You must provide a destination path as a 3rd argument to the executable.");
 		exit(0);
 	}
 
-	FILE* TextStream;
-	fopen_s(&TextStream, TextFilePath, "r");
+	if (strncmp(PeriodPtr + 1, "xmlseq", 7) != 0) {
+		perror("Invalid File Type! You can decode BRSEQ files only.");
+		exit(0);
+	}
+
+	if (strncmp(DestPeriodPtr + 1, "brseq", 6) != 0) {
+		perror("Invalid File Type! Output file must be filetype xmlseq.");
+		exit(0);
+	}
+
+	FILE* TextStream = fopen(TextFilePath, "r");
 	if (TextStream == NULL) {
-		perror("Invalid File Path to XMLSeq! fopen_s() failed.");
+		perror("Invalid File Path to XMLSeq! fopen() failed.");
 		exit(-1);
 	}
 
-	FILE* ByteStream;
-	fopen_s(&ByteStream, DestBRSEQPath, "wb+");
+	FILE* ByteStream = fopen(DestBRSEQPath, "wb+");
 	if (ByteStream == NULL) {
-		perror("ByteStream is NULL! fopen_s() failed.");
+		perror("ByteStream is NULL! fopen() failed.");
 		exit(-1);
 	}
 
@@ -277,9 +292,9 @@ brseq_t encode_brseq(char* TextFilePath, char* DestBRSEQPath) {
 	//make RSEQ, and DATA headers on the ByteStream
 	//parse, encode, and write the TextStream to the ByteStream
 	//make LABL header on the ByteStream
-	DATA_t DATAStruct = { .DATAHeaderStr = "DATA", .DATA_Offset = _byteswap_ulong(0x0C), .DATA_Section = 0, .DATA_Size = 0};
+	DATA_t DATAStruct = { .DATAHeaderStr = "DATA", .DATA_Offset = byteswap32(0x0C), .DATA_Section = 0, .DATA_Size = 0};
 	LABL_t LABLStruct = { .LABLHeaderStr = "LABL", .LABL_Offset = 0, .LABL_Section = 0, .LABL_Size = 0 };
-	brseq_t BRSEQ = { .RSEQHeaderStr = "RSEQ", .EndianBytes = {0xfe,0xff}, .VersionNum = 1, .FileLength = 0, .RSEQ_Size = _byteswap_ushort(0x20), .NumberOfSections = _byteswap_ushort(2), .DATA_Offset = _byteswap_ulong(0x20), .DATA_Size = 0, .LABL_Offset = 0, .LABL_Size = 0, .DATAStruct = DATAStruct, .LABLStruct = LABLStruct};
+	brseq_t BRSEQ = { .RSEQHeaderStr = "RSEQ", .EndianBytes = {0xfe,0xff}, .VersionNum = 1, .FileLength = 0, .RSEQ_Size = byteswap16(0x20), .NumberOfSections = byteswap16(2), .DATA_Offset = byteswap32(0x20), .DATA_Size = 0, .LABL_Offset = 0, .LABL_Size = 0, .DATAStruct = DATAStruct, .LABLStruct = LABLStruct};
 	
 	parse_textstream(TextStream, ByteStream, BRSEQ);
 

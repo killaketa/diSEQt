@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "brseq.h"
 #include "rseq_parse.h"
+#include "common.h"
 
 #define DefaultDelimiters "/ :,<>=\"\t\n"
 
@@ -118,33 +118,33 @@ char* parse_prefix_args(FILE* ByteStream, char* PrefixPtr, char* Token) {
 	if (PrefixPtr == NULL) return Token;
 
 	if (strncmp(PrefixPtr, "rand", 7 * sizeof(char)) == 0) {
-		__int16 Int16_1 = _byteswap_ushort(strtol(Token, &EndPtr, 10));
+		int16_t Int16_1 = byteswap16(strtol(Token, &EndPtr, 10));
 		Token = strtok(NULL, DefaultDelimiters);
-		__int16 Int16_2 = _byteswap_ushort(strtol(Token, &EndPtr, 10));
+		int16_t Int16_2 = byteswap16(strtol(Token, &EndPtr, 10));
 
 		fwrite(&Int16_1, sizeof(Int16_1), 1, ByteStream);
 		fwrite(&Int16_2, sizeof(Int16_2), 1, ByteStream);
 	}
 	else if (strncmp(PrefixPtr, "var", 9 * sizeof(char)) == 0) {
-		__int8 Int8 = strtol(Token, &EndPtr, 10);
+		int8_t Int8 = strtol(Token, &EndPtr, 10);
 
 		fputc(Int8, ByteStream);
 	}
 	else if (strncmp(PrefixPtr, "time", 5 * sizeof(char)) == 0) {
-		__int16 Int16 = _byteswap_ushort(strtol(Token, &EndPtr, 10));
+		int16_t Int16 = byteswap16(strtol(Token, &EndPtr, 10));
 
 		fwrite(&Int16, sizeof(Int16), 1, ByteStream);
 	}
 	else if (strncmp(PrefixPtr, "timerand", 9 * sizeof(char)) == 0) {
-		__int16 Int16_1 = _byteswap_ushort(strtol(Token, &EndPtr, 10));
+		int16_t Int16_1 = byteswap16(strtol(Token, &EndPtr, 10));
 		Token = strtok(NULL, DefaultDelimiters);
-		__int16 Int16_2 = _byteswap_ushort(strtol(Token, &EndPtr, 10));
+		int16_t Int16_2 = byteswap16(strtol(Token, &EndPtr, 10));
 
 		fwrite(&Int16_1, sizeof(Int16_1), 1, ByteStream);
 		fwrite(&Int16_2, sizeof(Int16_2), 1, ByteStream);
 	}
 	else if (strncmp(PrefixPtr, "timevar", 8 * sizeof(char)) == 0) {
-		__int8 Int8 = strtol(Token, &EndPtr, 10);
+		int8_t Int8 = strtol(Token, &EndPtr, 10);
 
 		fputc(Int8, ByteStream);
 	}
@@ -185,7 +185,7 @@ char* parse_notecmd(FILE* ByteStream, char* CmdPtr, char** Token, int* PrefixCon
 	if (CmdPtr == NULL) return 1;
 	char* EndPtr;
 
-	__int8 base = 0;
+	int8_t base = 0;
 
 	if (CmdPtr[0] == 'c' & CmdPtr[0 == 'n']) {
 		base = 0x00;
@@ -228,12 +228,12 @@ char* parse_notecmd(FILE* ByteStream, char* CmdPtr, char** Token, int* PrefixCon
 	}
 
 	if (CmdPtr[2] != 'm') {
-		__int8 mult = CmdPtr[2] - 48; // subtract char by 48 to get its actual int value instead of ASCII.
+		int8_t mult = CmdPtr[2] - 48; // subtract char by 48 to get its actual int value instead of ASCII.
 		base = base + ((mult + 1) * 12);
 	}
 	fputc(base, ByteStream);
 
-	__int8 Int8 = strtol(*Token, &EndPtr, 10);
+	int8_t Int8 = strtol(*Token, &EndPtr, 10);
 	fputc(Int8, ByteStream);
 	*Token = strtok(NULL, DefaultDelimiters);
 
@@ -299,7 +299,7 @@ int parse_command(FILE* ByteStream, FILE* TextStream, offset_t** OffsetsPtr, cmd
 	else if (strncmp(CmdPtr, "opentrack", 10 * sizeof(char)) == 0) {
 		fputc(0x88, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 			Tokens = strtok(NULL, DefaultDelimiters);
 			parse_cmdoffset(ByteStream, Tokens, CmdOffsetsPtr);
@@ -320,480 +320,480 @@ int parse_command(FILE* ByteStream, FILE* TextStream, offset_t** OffsetsPtr, cmd
 	else if (strncmp(CmdPtr, "timebase", 9 * sizeof(char)) == 0) {
 		fputc(0xB0, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "envhold", 8 * sizeof(char)) == 0) {
 		fputc(0xB1, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "monophonic_bool", 11 * sizeof(char)) == 0) {
 		fputc(0xB2, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "velocityrange", 14 * sizeof(char)) == 0) {
 		fputc(0xB3, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "pan", 3 * sizeof(char)) == 0) {
 		fputc(0xC0, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "volume", 7 * sizeof(char)) == 0) {
 		fputc(0xC1, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "mainvolume", 11 * sizeof(char)) == 0) {
 		fputc(0xC2, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "transpose", 10 * sizeof(char)) == 0) {
 		fputc(0xC3, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "pitchbend", 10 * sizeof(char)) == 0) {
 		fputc(0xC4, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "bendrange", 10 * sizeof(char)) == 0) {
 		fputc(0xC5, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "prio", 5 * sizeof(char)) == 0) {
 		fputc(0xC6, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "notewait_bool", 9 * sizeof(char)) == 0) {
 		fputc(0xC7, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "tie_bool", 4 * sizeof(char)) == 0) {
 		fputc(0xC8, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "prtmnto", 8 * sizeof(char)) == 0) {
 		fputc(0xC9, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "moddepth", 9 * sizeof(char)) == 0) {
 		fputc(0xCA, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "modspeed", 9 * sizeof(char)) == 0) {
 		fputc(0xCB, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "modtype", 8 * sizeof(char)) == 0) {
 		fputc(0xCC, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "modrange", 9 * sizeof(char)) == 0) {
 		fputc(0xCD, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "prtmnto_bool", 8 * sizeof(char)) == 0) {
 		fputc(0xCE, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "prtmntotime", 12 * sizeof(char)) == 0) {
 		fputc(0xCF, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "attack", 7 * sizeof(char)) == 0) {
 		fputc(0xD0, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "decay", 6 * sizeof(char)) == 0) {
 		fputc(0xD1, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "sustain", 8 * sizeof(char)) == 0) {
 		fputc(0xD2, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "release", 8 * sizeof(char)) == 0) {
 		fputc(0xD3, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "loopstart", 8 * sizeof(char)) == 0) {
 		fputc(0xD4, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "volume2", 8 * sizeof(char)) == 0) {
 		fputc(0xD5, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "printvar", 9 * sizeof(char)) == 0) {
 		fputc(0xD6, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "srndpan", 8 * sizeof(char)) == 0) {
 		fputc(0xD7, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "lpfcutoff", 10 * sizeof(char)) == 0) {
 		fputc(0xD8, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "fxsenda", 8 * sizeof(char)) == 0) {
 		fputc(0xD9, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "fxsendb", 8 * sizeof(char)) == 0) {
 		fputc(0xDA, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "mainsend", 9 * sizeof(char)) == 0) {
 		fputc(0xDB, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "initpan", 8 * sizeof(char)) == 0) {
 		fputc(0xDC, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "mute", 5 * sizeof(char)) == 0) {
 		fputc(0xDD, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "fxsendc", 8 * sizeof(char)) == 0) {
 		fputc(0xDE, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "damper", 7 * sizeof(char)) == 0) {
 		fputc(0xDF, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+			int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 			fputc(Int8, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "moddelay", 9 * sizeof(char)) == 0) {
 		fputc(0xE0, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "tempo", 6 * sizeof(char)) == 0) {
 		fputc(0xE1, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "sweeppitch", 11 * sizeof(char)) == 0) {
 		fputc(0xE3, ByteStream);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "setvar", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x80, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "addvar", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x81, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "subvar", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x82, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "mulvar", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x83, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "divvar", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x84, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "binshiftvar", 12 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x85, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "randvar", 8 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x86, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "binandvar", 10 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x87, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "binorvar", 9 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x87, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "binxorvar", 10 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x89, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "notvar", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x8A, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "modvar", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x8B, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "cmp_eq", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x90, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "cmp_ge", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x91, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "cmp_gt", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x92, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "cmp_le", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x93, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "cmp_lt", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x94, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "cmp_ne", 7 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0x95, ByteStream);
-		__int8 Int8 = strtol(Tokens, &EndPtr, 10);
+		int8_t Int8 = strtol(Tokens, &EndPtr, 10);
 		fputc(Int8, ByteStream);
 		Tokens = strtok(NULL, DefaultDelimiters);
 		if (PrefixControlsArgs == 0) {
-			__int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			int16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "userproc", 9 * sizeof(char)) == 0) {
 		fputc(0xF0, ByteStream);
 		fputc(0xE0, ByteStream);
 
-		unsigned __int16 Int16 = _byteswap_ushort(strtol(Tokens, &EndPtr, 10));
-		fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+		uint16_t Int16 = byteswap16(strtol(Tokens, &EndPtr, 10));
+		fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 	}
 	else if (strncmp(CmdPtr, "loopend", 8 * sizeof(char)) == 0) {
 		fputc(0xFC, ByteStream);
@@ -809,14 +809,14 @@ int parse_command(FILE* ByteStream, FILE* TextStream, offset_t** OffsetsPtr, cmd
 				exit(0);
 			}
 
-			__int16 Int16 = 0;
+			int16_t Int16 = 0;
 
 			for (int i = 0; i < 16; i++) {
 				Int16 = Int16 | (Tokens[i] - 48);
 				if (i < 15) Int16 = Int16 << 1;
 			}
-			Int16 = _byteswap_ushort(Int16);
-			fwrite(&Int16, sizeof(__int16), 1, ByteStream);
+			Int16 = byteswap16(Int16);
+			fwrite(&Int16, sizeof(int16_t), 1, ByteStream);
 		}
 	}
 	else if (strncmp(CmdPtr, "fin", 4 * sizeof(char)) == 0) {
@@ -889,21 +889,21 @@ char* parse_textstream(FILE* TextStream, FILE* ByteStream, brseq_t BRSEQ) {
 
 	fwrite(&BRSEQ.RSEQHeaderStr, 4 * sizeof(char), 1, ByteStream);
 	fwrite(&BRSEQ.EndianBytes, 2 * sizeof(char), 1, ByteStream);
-	fwrite(&BRSEQ.VersionNum, 1 * sizeof(__int16), 1, ByteStream);
-	fwrite(&BRSEQ.FileLength, 1 * sizeof(__int32), 1, ByteStream);
-	fwrite(&BRSEQ.RSEQ_Size, 1 * sizeof(__int16), 1, ByteStream);
-	fwrite(&BRSEQ.NumberOfSections, 1 * sizeof(__int16), 1, ByteStream);
-	fwrite(&BRSEQ.DATA_Offset, 1 * sizeof(__int32), 1, ByteStream);
-	fwrite(&BRSEQ.DATA_Size, 1 * sizeof(__int32), 1, ByteStream);
-	fwrite(&BRSEQ.LABL_Offset, 1 * sizeof(__int32), 1, ByteStream);
-	fwrite(&BRSEQ.LABL_Size, 1 * sizeof(__int32), 1, ByteStream);
+	fwrite(&BRSEQ.VersionNum, 1 * sizeof(int16_t), 1, ByteStream);
+	fwrite(&BRSEQ.FileLength, 1 * sizeof(int32_t), 1, ByteStream);
+	fwrite(&BRSEQ.RSEQ_Size, 1 * sizeof(int16_t), 1, ByteStream);
+	fwrite(&BRSEQ.NumberOfSections, 1 * sizeof(int16_t), 1, ByteStream);
+	fwrite(&BRSEQ.DATA_Offset, 1 * sizeof(int32_t), 1, ByteStream);
+	fwrite(&BRSEQ.DATA_Size, 1 * sizeof(int32_t), 1, ByteStream);
+	fwrite(&BRSEQ.LABL_Offset, 1 * sizeof(int32_t), 1, ByteStream);
+	fwrite(&BRSEQ.LABL_Size, 1 * sizeof(int32_t), 1, ByteStream);
 
 	// Beginning of writing DATA data.
 
 	BRSEQ.DATA_Offset = ftell(ByteStream);
 	fwrite("DATA", 4 * sizeof(char), 1, ByteStream);
-	fwrite(&BRSEQ.DATA_Size, 1 * sizeof(__int32), 1, ByteStream);
-	fwrite(&BRSEQ.DATAStruct.DATA_Offset, 1 * sizeof(__int32), 1, ByteStream);
+	fwrite(&BRSEQ.DATA_Size, 1 * sizeof(int32_t), 1, ByteStream);
+	fwrite(&BRSEQ.DATAStruct.DATA_Offset, 1 * sizeof(int32_t), 1, ByteStream);
 
 	while (fgets(line, sizeof(line), TextStream))
 	{
@@ -949,11 +949,11 @@ char* parse_textstream(FILE* TextStream, FILE* ByteStream, brseq_t BRSEQ) {
 
 	BRSEQ.LABL_Offset = ftell(ByteStream);
 
-	LabelsParsedCount = _byteswap_ulong(LabelsParsedCount);
+	LabelsParsedCount = byteswap32(LabelsParsedCount);
 	fwrite("LABL", 4 * sizeof(char), 1, ByteStream);
-	fwrite(&BRSEQ.LABL_Size, 1 * sizeof(__int32), 1, ByteStream);
-	fwrite(&LabelsParsedCount, 1 * sizeof(__int32), 1, ByteStream);
-	LabelsParsedCount = _byteswap_ulong(LabelsParsedCount);
+	fwrite(&BRSEQ.LABL_Size, 1 * sizeof(int32_t), 1, ByteStream);
+	fwrite(&LabelsParsedCount, 1 * sizeof(int32_t), 1, ByteStream);
+	LabelsParsedCount = byteswap32(LabelsParsedCount);
 
 	for (int i = 0; i < LabelsParsedCount; i++) {
 		fputc(0x00, ByteStream);
@@ -965,17 +965,17 @@ char* parse_textstream(FILE* TextStream, FILE* ByteStream, brseq_t BRSEQ) {
 	for (int i = 0; i < LabelsParsedCount; i++) {
 		LabelsPtr[i].LabelOffset = ftell(ByteStream) - (BRSEQ.LABL_Offset + 0x08);
 
-		LabelsPtr[i].SndDATA_Offset = _byteswap_ulong(LabelsPtr[i].SndDATA_Offset);
-		LabelsPtr[i].StringLen = _byteswap_ulong(LabelsPtr[i].StringLen);
-		LabelsPtr[i].LabelOffset = _byteswap_ulong(LabelsPtr[i].LabelOffset);
-		fwrite(&LabelsPtr[i].SndDATA_Offset, sizeof(__int32), 1, ByteStream);
-		fwrite(&LabelsPtr[i].StringLen, sizeof(__int32), 1, ByteStream);
+		LabelsPtr[i].SndDATA_Offset = byteswap32(LabelsPtr[i].SndDATA_Offset);
+		LabelsPtr[i].StringLen = byteswap32(LabelsPtr[i].StringLen);
+		LabelsPtr[i].LabelOffset = byteswap32(LabelsPtr[i].LabelOffset);
+		fwrite(&LabelsPtr[i].SndDATA_Offset, sizeof(int32_t), 1, ByteStream);
+		fwrite(&LabelsPtr[i].StringLen, sizeof(int32_t), 1, ByteStream);
 		fseek(ByteStream, (BRSEQ.LABL_Offset + 0x0C) + (i * 4), SEEK_SET);
-		fwrite(&LabelsPtr[i].LabelOffset, sizeof(__int32), 1, ByteStream);
+		fwrite(&LabelsPtr[i].LabelOffset, sizeof(int32_t), 1, ByteStream);
 		fseek(ByteStream, 0, SEEK_END);
-		LabelsPtr[i].SndDATA_Offset = _byteswap_ulong(LabelsPtr[i].SndDATA_Offset);
-		LabelsPtr[i].StringLen = _byteswap_ulong(LabelsPtr[i].StringLen);
-		LabelsPtr[i].LabelOffset = _byteswap_ulong(LabelsPtr[i].LabelOffset);
+		LabelsPtr[i].SndDATA_Offset = byteswap32(LabelsPtr[i].SndDATA_Offset);
+		LabelsPtr[i].StringLen = byteswap32(LabelsPtr[i].StringLen);
+		LabelsPtr[i].LabelOffset = byteswap32(LabelsPtr[i].LabelOffset);
 
 		fwrite(LabelsPtr[i].String, strlen(LabelsPtr[i].String) * sizeof(char), 1, ByteStream);
 	}
@@ -992,29 +992,29 @@ char* parse_textstream(FILE* TextStream, FILE* ByteStream, brseq_t BRSEQ) {
 	// End of writing new data to sections.
 	// Beginning of modifying wrong fields of sections.
 
-	unsigned __int32 FileLength = _byteswap_ulong(ftell(ByteStream));
-	BRSEQ.DATA_Size = _byteswap_ulong(BRSEQ.DATA_Size);
-	BRSEQ.LABL_Offset = _byteswap_ulong(BRSEQ.LABL_Offset);
-	BRSEQ.LABL_Size = _byteswap_ulong(BRSEQ.LABL_Size);
+	uint32_t FileLength = byteswap32(ftell(ByteStream));
+	BRSEQ.DATA_Size = byteswap32(BRSEQ.DATA_Size);
+	BRSEQ.LABL_Offset = byteswap32(BRSEQ.LABL_Offset);
+	BRSEQ.LABL_Size = byteswap32(BRSEQ.LABL_Size);
 
 	fseek(ByteStream, 0x08, SEEK_SET);
-	fwrite(&FileLength, sizeof(__int32), 1, ByteStream);
+	fwrite(&FileLength, sizeof(int32_t), 1, ByteStream);
 
 	fseek(ByteStream, 0x14, SEEK_SET);
-	fwrite(&BRSEQ.DATA_Size, sizeof(__int32), 1, ByteStream);
+	fwrite(&BRSEQ.DATA_Size, sizeof(int32_t), 1, ByteStream);
 
 	fseek(ByteStream, BRSEQ.DATA_Offset + 0x04, SEEK_SET);
-	fwrite(&BRSEQ.DATA_Size, sizeof(__int32), 1, ByteStream);
+	fwrite(&BRSEQ.DATA_Size, sizeof(int32_t), 1, ByteStream);
 
 	fseek(ByteStream, 0x18, SEEK_SET);
-	fwrite(&BRSEQ.LABL_Offset, sizeof(__int32), 1, ByteStream);
-	BRSEQ.LABL_Offset = _byteswap_ulong(BRSEQ.LABL_Offset);
+	fwrite(&BRSEQ.LABL_Offset, sizeof(int32_t), 1, ByteStream);
+	BRSEQ.LABL_Offset = byteswap32(BRSEQ.LABL_Offset);
 
 	fseek(ByteStream, 0x1C, SEEK_SET);
-	fwrite(&BRSEQ.LABL_Size, sizeof(__int32), 1, ByteStream);
+	fwrite(&BRSEQ.LABL_Size, sizeof(int32_t), 1, ByteStream);
 
 	fseek(ByteStream, BRSEQ.LABL_Offset + 0x04, SEEK_SET);
-	fwrite(&BRSEQ.LABL_Size, sizeof(__int32), 1, ByteStream);
+	fwrite(&BRSEQ.LABL_Size, sizeof(int32_t), 1, ByteStream);
 
 
 	free(CmdOffsetsPtr);

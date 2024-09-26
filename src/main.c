@@ -6,12 +6,9 @@
 
 
 int main(int argc, char** argv) {
-	if (argv[2] == NULL) {
-		printf("No file provided as second argument.");
-		exit(0);
-	}
+	printf("%s\n", argv[1]);
 	if (argc < 3) {
-		printf("Invalid arguments.\nUsage is as follows:\nbrseqtool decode path/to/file\nbrseqtool encode path/to/file\nbrseqtool dc path/to/file\nbrseqtool ec path/to/file");
+		printf("Invalid arguments.\nUsage is as follows:\ndiSEQt decode file.brseq destfile.xmlseq\ndiSEQt encode file.xmlseq destfile.brseq\ndiSEQt dc file.brseq destfile.xmlseq\ndiSEQt ec file.xmlseq destfile.brseq");
 		exit(0);
 	}
 	if (strncmp(argv[1],"decode",7*sizeof(char)) == 0 || strncmp(argv[1], "dc", 3 * sizeof(char)) == 0) {
