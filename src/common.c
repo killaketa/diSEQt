@@ -37,15 +37,15 @@ int decode_vlq(unsigned char* Buffer, int* Offset) {
 }
 
 int decode_vlq_bytestream(FILE* Buffer) {
-	unsigned char* Byte = fgetc(Buffer);
+	unsigned char Byte = fgetc(Buffer);
 	int holder = 0;
 	int done = 0;
 
 	while (done == 0) {
 		// Compares the binary of Byte (EX. 10010100) with 10000000 (done by getting the binary of 1 (00000001) and shifting it left 7 times.). Is 0 if MSB is 0 or 128 if MSB is 1.
-		int firstbit = *Byte & (1 << 7);
+		int firstbit = Byte & (1 << 7);
 
-		holder = (holder << 7) | (*Byte & (0x7F)); // Set the holder to the current binary shifted right 7 times bitwise OR'd with 01111111. (EX. 01111111 and 01111111 to 01111111 1111111)
+		holder = (holder << 7) | (Byte & (0x7F)); // Set the holder to the current binary shifted right 7 times bitwise OR'd with 01111111. (EX. 01111111 and 01111111 to 01111111 1111111)
 
 		if (firstbit == 0) {
 			done = 1;

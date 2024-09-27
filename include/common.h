@@ -1,6 +1,8 @@
 #ifndef COMMONFUNCSHEADER
 #define COMMONFUNCSHEADER
 
+#define XMLSEQ_START_STRING "// Created by diSEQt\n// Program made by Keta\n// https://github.com/killaketa/diSEQt\n\n"
+
 #include <stdint.h>
 
 uint16_t byteswap16(uint16_t src);

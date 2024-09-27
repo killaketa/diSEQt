@@ -230,7 +230,7 @@ brseq_t decode_brseq(const char* FilePath, char* DestTextPath) {
 		exit(-1);
 	}
 
-	fprintf(TextStream, "// Created by BRSEQSuite\n// Program made by Keta\n\n");
+	fprintf(TextStream, XMLSEQ_START_STRING);
 
 
 	brseq_t BRSEQ = decode_sections(ByteStream, TextStream); // Write BOM (whether file uses Big or Little Endian) plus other RSEQ header bs to the TextStream before passing to decode_LABLSection.

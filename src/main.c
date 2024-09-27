@@ -6,10 +6,11 @@
 #include "midi.h"
 #include "common.h"
 
+#define INVALID_ARGS_STRING "Invalid arguments.\nUsage is as follows:\ndiSEQt decode file.brseq destfile.xmlseq\ndiSEQt encode file.xmlseq destfile.brseq\ndiSEQt dc file.brseq destfile.xmlseq\ndiSEQt ec file.xmlseq destfile.brseq"
 
 int main(int argc, char** argv) {
 	if (argc < 3) {
-		printf("Invalid arguments.\nUsage is as follows:\ndiSEQt decode file.brseq destfile.xmlseq\ndiSEQt encode file.xmlseq destfile.brseq\ndiSEQt dc file.brseq destfile.xmlseq\ndiSEQt ec file.xmlseq destfile.brseq");
+		printf(INVALID_ARGS_STRING);
 		exit(0);
 	}
 	if (strncmp(argv[1],"decode",7*sizeof(char)) == 0 || strncmp(argv[1], "dc", 3 * sizeof(char)) == 0) {
@@ -21,4 +22,8 @@ int main(int argc, char** argv) {
 	//else if (strncmp(argv[1], "midi", 5 * sizeof(char)) == 0 || strncmp(argv[1], "md", 3 * sizeof(char)) == 0) {
 	//	decode_midi(argv[2], argv[3]);
 	//}
+	else{
+		printf(INVALID_ARGS_STRING);
+		exit(0);
+	}
 }
