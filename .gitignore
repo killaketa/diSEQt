@@ -365,3 +365,5 @@ FodyWeavers.xsd
 *.rseq
 *.bak
 *.xmlseq
+/.gitignore
+/.gitattributes
