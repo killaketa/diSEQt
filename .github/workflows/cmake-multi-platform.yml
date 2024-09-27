@@ -79,6 +79,6 @@ jobs:
       with:
         name: ${{ matrix.os }}_${{ matrix.c_compiler }}_diSEQtbuild
         path: |
-          ./build
+          ./build/src
           
           
