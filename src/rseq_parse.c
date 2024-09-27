@@ -6,8 +6,6 @@
 
 #define DefaultDelimiters "/ :,<>=\"\t\n"
 
-#pragma warning(disable : 4996) // fuck you vc++ im not using strtok_s
-
 int LineNum = 0;
 int OffsetCount = 0;
 int CmdOffsetCount = 0;

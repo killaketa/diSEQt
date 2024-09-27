@@ -46,7 +46,7 @@ char* decode_DATASection(brseq_t BRSEQ, LABLInfo_t LABL, FILE* TextStream, int* 
 				break;
 			}
 
-			if ((cmdbyte == 0xFF | cmdbyte == 0xFD) && (i2 >= HighestOffset + 0x0C) && (BRSEQ.DATAStruct.DATA_Section[i2 + 1] == 0xFF)) {
+			if ((cmdbyte == 0xFF | cmdbyte == 0xFD) && (i2 >= HighestOffset + 0x0C) && (BRSEQ.DATAStruct.DATA_Section[i2] == 0xFF)) {
 				IsFin = 1;
 			}
 
@@ -63,6 +63,7 @@ char* predecode_DATASection(brseq_t BRSEQ, LABLInfo_t LABL, int* ImportantOffset
 			HighestOffset = LABL.Labels[i2].SndDATA_Offset;
 		}
 	}
+
 	for (unsigned int i = 0; i < LABL.LabelCount; i++) {
 
 		int IsFin = 0;
@@ -86,7 +87,7 @@ char* predecode_DATASection(brseq_t BRSEQ, LABLInfo_t LABL, int* ImportantOffset
 				break;
 			}
 
-			if ((cmdbyte == 0xFF | cmdbyte == 0xFD) && (i2 > HighestOffset + 0x0C) && (BRSEQ.DATAStruct.DATA_Section[i2 + 1] == 0xFF)) {
+			if ((cmdbyte == 0xFF | cmdbyte == 0xFD) && (i2 >= HighestOffset + 0x0C) && (BRSEQ.DATAStruct.DATA_Section[i2] == 0xFF)) {
 				IsFin = 1;
 			}
 		}
@@ -217,8 +218,8 @@ brseq_t decode_brseq(const char* FilePath, char* DestTextPath) {
 		exit(0);
 	}
 
-	FILE* FStream = fopen(FilePath, "rb");
-	if (FStream == NULL) {
+	FILE* ByteStream = fopen(FilePath, "rb");
+	if (ByteStream == NULL) {
 		perror("Invalid File Path to BRSEQ! fopen() failed");
 		exit(-1);
 	}
@@ -232,8 +233,8 @@ brseq_t decode_brseq(const char* FilePath, char* DestTextPath) {
 	fprintf(TextStream, "// Created by BRSEQSuite\n// Program made by Keta\n\n");
 
 
-	brseq_t BRSEQ = decode_sections(FStream, TextStream); // Write BOM (whether file uses Big or Little Endian) plus other RSEQ header bs to the TextStream before passing to decode_LABLSection.
-	fclose(FStream);
+	brseq_t BRSEQ = decode_sections(ByteStream, TextStream); // Write BOM (whether file uses Big or Little Endian) plus other RSEQ header bs to the TextStream before passing to decode_LABLSection.
+	fclose(ByteStream);
 
 	LABLInfo_t LABL = decode_LABLSection(BRSEQ, TextStream);
 
@@ -285,19 +286,14 @@ brseq_t encode_brseq(char* TextFilePath, char* DestBRSEQPath) {
 		exit(-1);
 	}
 
-
-	//THE PLAN:
-	//Make BRSEQ struct, initialize it with 0.
-	//parse and encode the TextStream but dont write the data to get sizes, would be offsets, and command offsets for replacement (replacing jump/call/opentrack offsets with the new ones).
-	//make RSEQ, and DATA headers on the ByteStream
-	//parse, encode, and write the TextStream to the ByteStream
-	//make LABL header on the ByteStream
 	DATA_t DATAStruct = { .DATAHeaderStr = "DATA", .DATA_Offset = byteswap32(0x0C), .DATA_Section = 0, .DATA_Size = 0};
 	LABL_t LABLStruct = { .LABLHeaderStr = "LABL", .LABL_Offset = 0, .LABL_Section = 0, .LABL_Size = 0 };
 	brseq_t BRSEQ = { .RSEQHeaderStr = "RSEQ", .EndianBytes = {0xfe,0xff}, .VersionNum = 1, .FileLength = 0, .RSEQ_Size = byteswap16(0x20), .NumberOfSections = byteswap16(2), .DATA_Offset = byteswap32(0x20), .DATA_Size = 0, .LABL_Offset = 0, .LABL_Size = 0, .DATAStruct = DATAStruct, .LABLStruct = LABLStruct};
 	
 	parse_textstream(TextStream, ByteStream, BRSEQ);
 
+	fclose(TextStream);
+	fclose(ByteStream);
 
 	return BRSEQ;
 }
