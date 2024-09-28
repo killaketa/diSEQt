@@ -623,9 +623,9 @@ char* decode_command(brseq_t BRSEQ, int* Offset, char** StrBuffer, int* Importan
 		snprintf(CmdName, CMDNAMEBUFFERSIZE, "envhold%%s%%s");
 		if (PrefixDeterminesArgs == 0) {
 			*Offset += 1;
-			Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
+			Int8 = BRSEQ.DATAStruct.DATA_Section[*Offset];
 			BytesPassed += 1;
-			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %u%%s", Byte[0]);
+			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %i%%s", Int8);
 		}
 		break;
 	case 0xB2:
@@ -677,18 +677,18 @@ char* decode_command(brseq_t BRSEQ, int* Offset, char** StrBuffer, int* Importan
 		snprintf(CmdName, CMDNAMEBUFFERSIZE, "transpose%%s%%s");
 		if (PrefixDeterminesArgs == 0) {
 			*Offset += 1;
-			Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
+			Int8 = BRSEQ.DATAStruct.DATA_Section[*Offset];
 			BytesPassed += 1;
-			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %u%%s", Byte[0]);
+			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %i%%s", Int8);
 		}
 		break;
 	case 0xC4:
 		snprintf(CmdName, CMDNAMEBUFFERSIZE, "pitchbend%%s%%s");
 		if (PrefixDeterminesArgs == 0) {
 			*Offset += 1;
-			Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
+			Int8 = BRSEQ.DATAStruct.DATA_Section[*Offset];
 			BytesPassed += 1;
-			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %u%%s", Byte[0]);
+			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %i%%s", Int8);
 		}
 		break;
 	case 0xC5:
@@ -794,36 +794,36 @@ char* decode_command(brseq_t BRSEQ, int* Offset, char** StrBuffer, int* Importan
 		snprintf(CmdName, CMDNAMEBUFFERSIZE, "attack%%s%%s");
 		if (PrefixDeterminesArgs == 0) {
 			*Offset += 1;
-			Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
+			Int8 = BRSEQ.DATAStruct.DATA_Section[*Offset];
 			BytesPassed += 1;
-			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %u%%s", Byte[0]);
+			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %i%%s", Int8);
 		}
 		break;
 	case 0xD1:
 		snprintf(CmdName, CMDNAMEBUFFERSIZE, "decay%%s%%s");
 		if (PrefixDeterminesArgs == 0) {
 			*Offset += 1;
-			Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
+			Int8 = BRSEQ.DATAStruct.DATA_Section[*Offset];
 			BytesPassed += 1;
-			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %u%%s", Byte[0]);
+			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %i%%s", Int8);
 		}
 		break;
 	case 0xD2:
 		snprintf(CmdName, CMDNAMEBUFFERSIZE, "sustain%%s%%s");
 		if (PrefixDeterminesArgs == 0) {
 			*Offset += 1;
-			Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
+			Int8 = BRSEQ.DATAStruct.DATA_Section[*Offset];
 			BytesPassed += 1;
-			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %u%%s", Byte[0]);
+			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %i%%s", Int8);
 		}
 		break;
 	case 0xD3:
 		snprintf(CmdName, CMDNAMEBUFFERSIZE, "release%%s%%s");
 		if (PrefixDeterminesArgs == 0) {
 			*Offset += 1;
-			Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
+			Int8 = BRSEQ.DATAStruct.DATA_Section[*Offset];
 			BytesPassed += 1;
-			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %u%%s", Byte[0]);
+			snprintf(CmdArgs, CMDARGSBUFFERSIZE, " %i%%s", Int8);
 		}
 		break;
 	case 0xD4:
