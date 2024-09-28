@@ -149,11 +149,11 @@ LABLInfo_t decode_LABLSection(brseq_t BRSEQ, FILE* TextStream) {
 	return LABL;
 }
 
-char* decode_section_data(FILE* FileStream, unsigned char** Buffer, uint32_t Offset, uint32_t Size) {
+char* decode_section_data(FILE* ByteStream, unsigned char** Buffer, uint32_t Offset, uint32_t Size) {
 	*Buffer = calloc(Size,sizeof(char));
-	fseek(FileStream, Offset, SEEK_SET);
-	fread(*Buffer, Size * sizeof(char), 1, FileStream);
-	fseek(FileStream, 0, SEEK_SET);
+	fseek(ByteStream, Offset, SEEK_SET);
+	fread(*Buffer, Size * sizeof(char), 1, ByteStream);
+	fseek(ByteStream, 0, SEEK_SET);
 	if (*Buffer == NULL) {
 		printf("Null Section Data!");
 		exit(0);
@@ -162,20 +162,20 @@ char* decode_section_data(FILE* FileStream, unsigned char** Buffer, uint32_t Off
 	return *Buffer;
 }
 
-brseq_t decode_sections(FILE* FileStream, FILE* TextStream) {
+brseq_t decode_sections(FILE* ByteStream, FILE* TextStream) {
 	brseq_t BRSEQ = {.DATA_Offset = 0, .DATA_Size = 0, .LABL_Offset = 0, .LABL_Size = 0};
 	
 	// Get DATA Header offset & size
-	fseek(FileStream, 16, SEEK_SET);
-	fread(&BRSEQ.DATA_Offset, sizeof(uint32_t), 1, FileStream);
-	fseek(FileStream, 20, SEEK_SET);
-	fread(&BRSEQ.DATA_Size, sizeof(uint32_t), 1, FileStream);
+	fseek(ByteStream, 12, SEEK_SET);
+	fread(&BRSEQ.DATA_Offset, sizeof(uint32_t), 1, ByteStream);
+	fseek(ByteStream, 20, SEEK_SET);
+	fread(&BRSEQ.DATA_Size, sizeof(uint32_t), 1, ByteStream);
 
 	// Get LABL Header offset & size
-	fseek(FileStream, 24, SEEK_SET);
-	fread(&BRSEQ.LABL_Offset, sizeof(uint32_t), 1, FileStream);
-	fseek(FileStream, 28, SEEK_SET);
-	fread(&BRSEQ.LABL_Size, sizeof(uint32_t), 1, FileStream);
+	fseek(ByteStream, 24, SEEK_SET);
+	fread(&BRSEQ.LABL_Offset, sizeof(uint32_t), 1, ByteStream);
+	fseek(ByteStream, 28, SEEK_SET);
+	fread(&BRSEQ.LABL_Size, sizeof(uint32_t), 1, ByteStream);
 
 	// Byteswap all the retrieved data since fread_s stores it as Little Endian (x86 processors use Little Endian, MKW uses Big Endian)
 	BRSEQ.DATA_Offset = byteswap32(BRSEQ.DATA_Offset);
@@ -184,15 +184,15 @@ brseq_t decode_sections(FILE* FileStream, FILE* TextStream) {
 	BRSEQ.LABL_Offset = byteswap32(BRSEQ.LABL_Offset);
 	BRSEQ.LABL_Size = byteswap32(BRSEQ.LABL_Size);
 
-	decode_section_data(FileStream, &BRSEQ.DATAStruct.DATA_Section, BRSEQ.DATA_Offset, BRSEQ.DATA_Size);
-	decode_section_data(FileStream, &BRSEQ.LABLStruct.LABL_Section, BRSEQ.LABL_Offset, BRSEQ.LABL_Size);
+	decode_section_data(ByteStream, &BRSEQ.DATAStruct.DATA_Section, BRSEQ.DATA_Offset, BRSEQ.DATA_Size);
+	decode_section_data(ByteStream, &BRSEQ.LABLStruct.LABL_Section, BRSEQ.LABL_Offset, BRSEQ.LABL_Size);
 
 	printf("DATA Offset: %u, DATA Size: %u, LABL Offset: %u, LABL Size: %u\n\n", BRSEQ.DATA_Offset, BRSEQ.DATA_Size, BRSEQ.LABL_Offset, BRSEQ.LABL_Size);
 
-	fseek(FileStream, 0x04, SEEK_SET);
-	fread(&BRSEQ.EndianBytes[0], sizeof(unsigned char), 1, FileStream);
-	fseek(FileStream, 0x05, SEEK_SET);
-	fread(&BRSEQ.EndianBytes[1], sizeof(unsigned char), 1, FileStream);
+	fseek(ByteStream, 0x04, SEEK_SET);
+	fread(&BRSEQ.EndianBytes[0], sizeof(unsigned char), 1, ByteStream);
+	fseek(ByteStream, 0x05, SEEK_SET);
+	fread(&BRSEQ.EndianBytes[1], sizeof(unsigned char), 1, ByteStream);
 	fprintf(TextStream, "// Endian: %02x%02x\n", BRSEQ.EndianBytes[0], BRSEQ.EndianBytes[1]);
 
 	return BRSEQ;
@@ -222,6 +222,13 @@ brseq_t decode_brseq(const char* FilePath, char* DestTextPath) {
 	if (ByteStream == NULL) {
 		perror("Invalid File Path to BRSEQ! fopen() failed");
 		exit(-1);
+	}
+
+	char RSEQBytes[4] = { '\0' , '\0' , '\0' , '\0' };
+	fread(RSEQBytes, 4 * sizeof(char), 1, ByteStream);
+	if (strncmp(RSEQBytes, "RSEQ", 4) != 0) {
+		perror("Invalid BRSEQ file! RSEQ header not found.");
+		exit(0);
 	}
 
 	FILE* TextStream = fopen(DestTextPath, "w");
