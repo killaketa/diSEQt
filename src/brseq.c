@@ -38,6 +38,7 @@ char* decode_DATASection(brseq_t BRSEQ, LABLInfo_t LABL, FILE* TextStream, int* 
 			}
 
 			if (IsFin == 0) {
+				//printf("%x\n", BRSEQ.DATAStruct.DATA_Section[i2]);
 				decode_command(BRSEQ, &i2, &cmd, ImportantOffsets);
 				fprintf(TextStream, "\t%s\n", cmd);
 				free(cmd);
@@ -166,7 +167,7 @@ brseq_t decode_sections(FILE* ByteStream, FILE* TextStream) {
 	brseq_t BRSEQ = {.DATA_Offset = 0, .DATA_Size = 0, .LABL_Offset = 0, .LABL_Size = 0};
 	
 	// Get DATA Header offset & size
-	fseek(ByteStream, 12, SEEK_SET);
+	fseek(ByteStream, 16, SEEK_SET);
 	fread(&BRSEQ.DATA_Offset, sizeof(uint32_t), 1, ByteStream);
 	fseek(ByteStream, 20, SEEK_SET);
 	fread(&BRSEQ.DATA_Size, sizeof(uint32_t), 1, ByteStream);
@@ -224,7 +225,7 @@ brseq_t decode_brseq(const char* FilePath, char* DestTextPath) {
 		exit(-1);
 	}
 
-	char RSEQBytes[4] = { '\0' , '\0' , '\0' , '\0' };
+	char RSEQBytes[4] = {0};
 	fread(RSEQBytes, 4 * sizeof(char), 1, ByteStream);
 	if (strncmp(RSEQBytes, "RSEQ", 4) != 0) {
 		perror("Invalid BRSEQ file! RSEQ header not found.");

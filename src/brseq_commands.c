@@ -9,7 +9,7 @@
 
 
 char* decode_notebyte(unsigned char NoteByte, char* NoteNameBuffer) {
-	char notename[6] = { "\0" };
+	char notename[6] = {0};
 	int NoteDivided = (int)floor((int8_t)NoteByte / 12);
 
 	switch ((int8_t)NoteByte % 12) 
@@ -83,7 +83,7 @@ char* decode_notebyte(unsigned char NoteByte, char* NoteNameBuffer) {
 
 
 char decode_extended_command(brseq_t BRSEQ, int* Offset, char* NameBuffer, size_t NameBufferSize, char* ArgsBuffer, size_t ArgsBufferSize, int PrefixDeterminesArgs, int* BytesAdded) {
-	unsigned char Byte = "\0";
+	unsigned char Byte = '\0';
 	uint16_t UInt16 = 0;
 	int16_t Int16 = 0;
 
@@ -358,10 +358,10 @@ char decode_extended_command(brseq_t BRSEQ, int* Offset, char* NameBuffer, size_
 char decode_prefix(brseq_t BRSEQ, int* Offset, char** PrefixStr, char** PrefixArgsStr, int* PrefixDeterminesArgs, int* CmdOffset, int* BytesAdded) {
 	int PrefixCmdOffset = *CmdOffset;
 	unsigned char PrefixCmdByte = BRSEQ.DATAStruct.DATA_Section[PrefixCmdOffset];
-	unsigned char Byte[4] = "\0";
+	unsigned char Byte[4] = {0};
 	int16_t Int16[2] = { 0 };
-	char prefixname[CMDNAMEBUFFERSIZE] = { "\0" };
-	char prefixargs[CMDARGSBUFFERSIZE] = { "\0" };
+	char prefixname[CMDNAMEBUFFERSIZE] = {0};
+	char prefixargs[CMDARGSBUFFERSIZE] = {0};
 
 	char* PrefixName2;
 	char* PrefixArgs2;
@@ -400,26 +400,25 @@ char decode_prefix(brseq_t BRSEQ, int* Offset, char** PrefixStr, char** PrefixAr
 		*Offset += 1;
 		Byte[3] = BRSEQ.DATAStruct.DATA_Section[*Offset];
 		*BytesAdded += 4;
-		snprintf(prefixname, CMDNAMEBUFFERSIZE,"%%s::rand\0"); // %i %i // randomcmdbyte commandbyte commandargs(...) randMin(Byte[2]) randMax(Byte[2])
+		snprintf(prefixname, CMDNAMEBUFFERSIZE,"%%s::rand"); // %i %i // randomcmdbyte commandbyte commandargs(...) randMin(Byte[2]) randMax(Byte[2])
 		snprintf(prefixargs, CMDARGSBUFFERSIZE, "%%s %i, %i", (int16_t)((Byte[0] << 8) | Byte[1]), (int16_t)((Byte[2] << 8) | Byte[3]));
 		break;
 	case 0xA1:
 		*Offset += 1;
 		Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
 		*BytesAdded += 1;
-		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::var\0"); // %u // varcmdbyte commandbyte commandargs(...) variable(Byte)
+		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::var"); // %u // varcmdbyte commandbyte commandargs(...) variable(Byte)
 		snprintf(prefixargs, CMDARGSBUFFERSIZE, "%%s %u", Byte[0]);
 		break;;
 	case 0xA2:
-		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::if\0");
-		snprintf(prefixargs, CMDARGSBUFFERSIZE, "%%s\0");
+		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::if");
 		break;
 	case 0xA3: // PCommandByte (FollowingCommand) TimeFactorInt16
 		*Offset += 1;
 		Int16[0] = (BRSEQ.DATAStruct.DATA_Section[*Offset] << 8) | BRSEQ.DATAStruct.DATA_Section[*Offset + 1];
 		*Offset += 1;
 		*BytesAdded += 2;
-		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::time\0"); // %i // randomcmdbyte commandbyte commandargs(...) time(Int16)
+		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::time"); // %i // randomcmdbyte commandbyte commandargs(...) time(Int16)
 		snprintf(prefixargs, CMDARGSBUFFERSIZE, "%%s, %i", Int16[0]);
 		break;
 	case 0xA4:
@@ -429,14 +428,14 @@ char decode_prefix(brseq_t BRSEQ, int* Offset, char** PrefixStr, char** PrefixAr
 		Int16[1] = (BRSEQ.DATAStruct.DATA_Section[*Offset] << 8) | BRSEQ.DATAStruct.DATA_Section[*Offset + 1];
 		*Offset += 1;
 		*BytesAdded += 4;
-		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::timerand\0"); // %i %i // randomcmdbyte commandbyte commandargs(...) timeMin(Int16) randMax(Int16)
+		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::timerand"); // %i %i // randomcmdbyte commandbyte commandargs(...) timeMin(Int16) randMax(Int16)
 		snprintf(prefixargs, CMDARGSBUFFERSIZE, "%%s, %i, %i", Int16[0], Int16[1]);
 		break;
 	case 0xA5:
 		*Offset += 1;
 		Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
 		*BytesAdded += 1;
-		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::timevar\0"); // %u // randomcmdbyte commandbyte commandargs(...) timeVariable(Byte)
+		snprintf(prefixname, CMDNAMEBUFFERSIZE, "%%s::timevar"); // %u // randomcmdbyte commandbyte commandargs(...) timeVariable(Byte)
 		snprintf(prefixargs, CMDARGSBUFFERSIZE, "%%s, %u", Byte[0]);
 		break;
 	}
@@ -445,7 +444,7 @@ char decode_prefix(brseq_t BRSEQ, int* Offset, char** PrefixStr, char** PrefixAr
 		*PrefixDeterminesArgs = 0;
 	}
 
-	char strbuffer[CMDNAMEBUFFERSIZE] = { "\0" };
+	char strbuffer[CMDNAMEBUFFERSIZE] = {0};
 	char argsbuffer[CMDARGSBUFFERSIZE] = "%s";
 	snprintf(strbuffer, CMDNAMEBUFFERSIZE, "%s", prefixname);
 	if (PrefixDeterminesArgs == 0) {
@@ -520,13 +519,14 @@ char prefix_determinesargs(brseq_t BRSEQ, int* Offset, int* PrefixDeterminesArgs
 char* decode_command(brseq_t BRSEQ, int* Offset, char** StrBuffer, int* ImportantOffsets) {
 	int FirstPrefixCmdOffset = *Offset;
 	int CmdOffset = *Offset;
-	unsigned char Byte[2] = { "\0" };
-	int16_t Int16 = "\0";
-	uint16_t UInt16 = "\0";
-	uint32_t UInt24 = "\0";
-	unsigned long VLQ = "\0";
+	unsigned char Byte[2] = {0};
+	int8_t Int8 = 0;
+	int16_t Int16 = 0;
+	uint16_t UInt16 = 0;
+	uint32_t UInt24 = 0;
+	unsigned long VLQ = 0;
 
-	char CmdName[CMDNAMEBUFFERSIZE] = { "\0" };
+	char CmdName[CMDNAMEBUFFERSIZE] = {0};
 	char CmdArgs[CMDARGSBUFFERSIZE] = "%s";
 
 	int PrefixDeterminesArgs = 0;
@@ -538,7 +538,7 @@ char* decode_command(brseq_t BRSEQ, int* Offset, char** StrBuffer, int* Importan
 	{
 	default: // If byte is undefined command then its a note command
 		Byte[0] = BRSEQ.DATAStruct.DATA_Section[*Offset];
-		char NoteName[6] = { "\0" };
+		char NoteName[6] = {0};
 		decode_notebyte(Byte[0], NoteName);
 		snprintf(CmdName, CMDNAMEBUFFERSIZE, "%s%%s%%s", NoteName);
 
@@ -983,7 +983,7 @@ char* decode_command(brseq_t BRSEQ, int* Offset, char** StrBuffer, int* Importan
 			Int16 = (BRSEQ.DATAStruct.DATA_Section[*Offset] << 8) | BRSEQ.DATAStruct.DATA_Section[*Offset + 1];
 			*Offset += 1; // The binary of the Int16 is used as a Bitmask to allocate tracks. (EX. 0000111111111111 would allocate tracks 0-3, note that track 0 is always allocated no matter what its bit is set to.)
 			BytesPassed += 2;
-			char bits[17] = { '\0' };
+			char bits[17] = {0};
 			for (int i = 0; i < 16; i++) {
 				if ((0x8000 & (Int16 << i)) == 0) {
 					bits[i] = '0';
@@ -1006,7 +1006,7 @@ char* decode_command(brseq_t BRSEQ, int* Offset, char** StrBuffer, int* Importan
 	char* prefixargs;
 	decode_prefix(BRSEQ, Offset, &prefixstr, &prefixargs, &PrefixDeterminesArgs, &FirstPrefixCmdOffset, &BytesPassed);
 
-	char FormattedCmdArgs[CMDARGSBUFFERSIZE] = { "\0" };
+	char FormattedCmdArgs[CMDARGSBUFFERSIZE] = {0};
 
 	snprintf(FormattedCmdArgs, CMDARGSBUFFERSIZE, CmdArgs, prefixargs);
 
