@@ -19,9 +19,9 @@ int main(int argc, char** argv) {
 	else if (strncmp(argv[1], "encode", 7 * sizeof(char)) == 0 || strncmp(argv[1], "ec", 3 * sizeof(char)) == 0) {
 		encode_brseq(argv[2], argv[3]);
 	}
-	//else if (strncmp(argv[1], "midi", 5 * sizeof(char)) == 0 || strncmp(argv[1], "md", 3 * sizeof(char)) == 0) {
-	//	decode_midi(argv[2], argv[3]);
-	//}
+	else if (strncmp(argv[1], "midi", 5 * sizeof(char)) == 0 || strncmp(argv[1], "md", 3 * sizeof(char)) == 0) {
+		decode_midi(argv[2], argv[3]);
+	}
 	else{
 		printf(INVALID_ARGS_STRING);
 		exit(0);
