@@ -4,6 +4,8 @@
 #include <string.h>
 #include <math.h>
 #include "common.h"
+#include "brseq_commands.h"
+#include "midi.h"
 
 #define MICROSECONDS_TO_BPM(microseconds) round((1000000/microseconds)*60) // (MICROSECONDS_IN_SECOND / microseconds_per_beat_arg) * 60 = round(BPM)
 
@@ -82,11 +84,13 @@ int decode_midi_syscmd(unsigned char Byte, FILE* ByteStream) {
 	}
 }
 
-void decode_midicmds(FILE* ByteStream, FILE* TextStream) {
+dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on successful detection of command (hence the long type)
 	long TrackOffset = 0; // 
 	long VLQ = decode_vlq_bytestream(ByteStream);
 	unsigned char cmdbyte = fgetc(ByteStream);
 	int channelnum = (cmdbyte & 0xF);
+
+	dec_midi CmdStruct = { .VLQ = VLQ, .CmdByte = cmdbyte >> 4, .Key = 255 };
 
 	printf("%u\n", VLQ);
 
@@ -99,21 +103,33 @@ void decode_midicmds(FILE* ByteStream, FILE* TextStream) {
 	{
 	default:
 		break;
-	case 0x8: // 1000 Note Off: 0kkkkkkk 0vvvvvvv (k = note, v = velocity). Ignore since Note On seeks Note Off then parses it into RSEQ note command length.
-		fseek(ByteStream, 2, SEEK_CUR);
-		break;
-	case 0x9: { // 1001 Note On: 0kkkkkkk 0vvvvvvv (k = note, v = velocity)
-		int curpos = ftell(ByteStream);
-		int off_cmd = 0;
+	case 0x8: {// 1000 Note Off: 0kkkkkkk 0vvvvvvv (k = note, v = velocity). Return VLQ since Note On seeks Note Off then parses it into RSEQ note command length.
 		unsigned char key = fgetc(ByteStream);
 		unsigned char velocity = fgetc(ByteStream);
-		unsigned char endvelocity = velocity;
-		while (off_cmd == 0) {
-			unsigned char nextchar = fgetc(ByteStream);
-			if (((nextchar & 0xF0) == 0x80) & (fgetc(ByteStream) == key)) { // Check for Note Off command.
-				endvelocity = fgetc(ByteStream);
-				fseek(ByteStream, curpos, SEEK_SET);
-				off_cmd = 1;
+		CmdStruct.Key = key;
+		break;
+	}
+	case 0x9: { // 1001 Note On: 0kkkkkkk 0vvvvvvv (k = note, v = velocity)
+		int textpos = ftell(TextStream);
+		unsigned char key = fgetc(ByteStream);
+		unsigned char velocity = fgetc(ByteStream);
+		CmdStruct.Key = key;
+
+		long totalWaitVLQ = 0;
+		dec_midi offCmdStruct = CmdStruct;
+
+		while (feof(ByteStream) == 0) {
+			offCmdStruct = decode_midicmds(ByteStream, TextStream);
+			totalWaitVLQ += offCmdStruct.VLQ;
+
+			if (offCmdStruct.CmdByte == 0x8) {
+				fseek(TextStream, textpos, SEEK_SET);
+				char NoteName[6] = { 0 };
+				decode_notebyte(key, NoteName);
+
+				fprintf(TextStream, "%s %u, %u\n", NoteName, velocity, MIDIWAIT_TO_RSEQWAIT(totalWaitVLQ));
+
+				fseek(TextStream, 0, SEEK_END);
 				break;
 			}
 		}
@@ -147,10 +163,12 @@ void decode_midicmds(FILE* ByteStream, FILE* TextStream) {
 		decode_midi_syscmd(cmdbyte, ByteStream);
 		break;
 	}
+
+	return CmdStruct;
 }
 
 void decode_midi(const char* FilePath, char* DestTextPath) { // Keep in mind that MIDI VLQ times are added upon (EX. if synthfont says event 1 = when 0, event 2 = when 10, event 3 = when 20, event 4 = when 30 then
-	char* PeriodPtr = strrchr(FilePath, '.');																	 //  event 1 = 0+0, event 2 = 0+10, event 3 = 10+10, event 4 = 20+10.
+	char* PeriodPtr = strrchr(FilePath, '.');																	 //  event 1 = 0, event 2 = 10, event 3 = 10, event 4 = 10.
 	char* DestPeriodPtr = strrchr(DestTextPath, '.');
 
 	if (DestTextPath == NULL) {
@@ -221,7 +239,7 @@ void decode_midi(const char* FilePath, char* DestTextPath) { // Keep in mind tha
 		}
 
 		fprintf(TextStream, "<newtrack name=\"MID_Track_%i\" dataoffset=\"%u\">\n", TrackCount, ftell(ByteStream));
-		decode_midicmds(ByteStream, TextStream);
+		decode_midicmds(ByteStream, TextStream, 255); // Hacky, set key to 255 since thats an impossible range for note on/off key detection.
 		fprintf(TextStream, "</newtrack>\n\n");
 
 		TrackCount++;

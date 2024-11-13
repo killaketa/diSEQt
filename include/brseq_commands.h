@@ -3,5 +3,6 @@
 
 #include "brseq.h"
 char* decode_command(brseq_t BRSEQ, int* Offset, char** StrBuffer, int* ImportantOffsets);
+char* decode_notebyte(unsigned char NoteByte, char* NoteNameBuffer);
 
 #endif
