@@ -84,6 +84,10 @@ int decode_midi_syscmd(unsigned char Byte, FILE* ByteStream) {
 	}
 }
 
+void decode_controller() {
+
+}
+
 dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on successful detection of command (hence the long type)
 	long TrackOffset = 0; // 
 	long VLQ = decode_vlq_bytestream(ByteStream);
@@ -99,7 +103,7 @@ dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on 
 	}
 
 	// Appendix 1.1 (Channel Voice Messages) https://midimusic.github.io/tech/midispec.html#BMA1_1
-	switch (cmdbyte >> 4) // switch case for 4 bits from MSB
+	switch (cmdbyte >> 4) // switch case for first 4 bits of byte
 	{
 	default:
 		break;
@@ -127,7 +131,7 @@ dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on 
 				char NoteName[6] = { 0 };
 				decode_notebyte(key, NoteName);
 
-				fprintf(TextStream, "%s %u, %u\n", NoteName, velocity, MIDIWAIT_TO_RSEQWAIT(totalWaitVLQ));
+				fprintf(TextStream, "%s %u, %lf\n", NoteName, velocity, MIDIWAIT_TO_RSEQWAIT(totalWaitVLQ));
 
 				fseek(TextStream, 0, SEEK_END);
 				break;
@@ -135,7 +139,7 @@ dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on 
 		}
 		break;
 	}
-	case 0xA: { // 1010 Polyphonic Key Pressure (Aftertouch). 0kkkkkkk 0vvvvvvv (k = note, v = pressure value)
+	case 0xA: { // 1010 Polyphonic Key Pressure (Aftertouch). 0kkkkkkk 0vvvvvvv (k = note, v = pressure value). Ignore, no RSEQ equivalant.
 		unsigned char key = fgetc(ByteStream);
 		unsigned char pressure = fgetc(ByteStream);
 		break;
@@ -149,7 +153,7 @@ dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on 
 		unsigned char prognum = fgetc(ByteStream);
 		break;
 	}
-	case 0xD: { // 1101 Channel Pressure (After-touch). 0vvvvvvv (v = pressure value)
+	case 0xD: { // 1101 Channel Pressure (After-touch). 0vvvvvvv (v = pressure value). Ignore, no RSEQ equivalant.
 		unsigned char pressure = fgetc(ByteStream);
 		break;
 	}
@@ -170,6 +174,10 @@ dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on 
 void decode_midi(const char* FilePath, char* DestTextPath) { // Keep in mind that MIDI VLQ times are added upon (EX. if synthfont says event 1 = when 0, event 2 = when 10, event 3 = when 20, event 4 = when 30 then
 	char* PeriodPtr = strrchr(FilePath, '.');																	 //  event 1 = 0, event 2 = 10, event 3 = 10, event 4 = 10.
 	char* DestPeriodPtr = strrchr(DestTextPath, '.');
+	char* TempFilePath;
+
+	TempFilePath = calloc(sizeof(FilePath) + 5, 1);
+	snprintf(TempFilePath, sizeof(FilePath) + 5, "%s_temp", FilePath);
 
 	if (DestTextPath == NULL) {
 		perror("DestTextPath is NULL! You must provide a destination path as a 3rd argument to the executable.");
@@ -177,7 +185,7 @@ void decode_midi(const char* FilePath, char* DestTextPath) { // Keep in mind tha
 	}
 
 	if (strncmp(PeriodPtr + 1, "mid", 4) != 0) {
-		perror("Invalid File Type! You can decode BRSEQ files only.");
+		perror("Invalid File Type! You can decode MIDI files only.");
 		exit(0);
 	}
 
@@ -189,6 +197,12 @@ void decode_midi(const char* FilePath, char* DestTextPath) { // Keep in mind tha
 	FILE* ByteStream = fopen(FilePath, "rb");
 	if (ByteStream == NULL) {
 		perror("Invalid File Path to MIDI! fopen() failed");
+		exit(-1);
+	}
+
+	FILE* SortedByteStream = fopen(TempFilePath, "w"); // Temporary FileStream to sort the MIDI into 16 chunks of commands based on channels instead of the 1024 possible tracks.
+	if (ByteStream == NULL) {
+		perror("Couldn't Make Temporary MID_TEMP File! fopen() failed");
 		exit(-1);
 	}
 
@@ -239,7 +253,7 @@ void decode_midi(const char* FilePath, char* DestTextPath) { // Keep in mind tha
 		}
 
 		fprintf(TextStream, "<newtrack name=\"MID_Track_%i\" dataoffset=\"%u\">\n", TrackCount, ftell(ByteStream));
-		decode_midicmds(ByteStream, TextStream, 255); // Hacky, set key to 255 since thats an impossible range for note on/off key detection.
+		decode_midicmds(ByteStream, TextStream);
 		fprintf(TextStream, "</newtrack>\n\n");
 
 		TrackCount++;
