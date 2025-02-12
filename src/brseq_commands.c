@@ -69,14 +69,7 @@ char* decode_notebyte(unsigned char NoteByte, char* NoteNameBuffer) {
 
 
 	char numchar[] = "0123456789";
-	if ((int)floor(NoteDivided) > 0) {
-		notename[2] = numchar[NoteDivided - 1];
-	}
-	else
-	{
-		notename[2] = 'm';
-		notename[3] = '1';
-	}
+	notename[2] = numchar[NoteDivided]; // Replacing if statement
 
 	snprintf(NoteNameBuffer, 6 * sizeof(char), "%s", notename);
 }
