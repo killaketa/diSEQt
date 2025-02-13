@@ -152,7 +152,7 @@ char* parse_prefix_args(FILE* ByteStream, char* PrefixPtr, char* Token) {
 }
 
 // Write the prefix strings command bytes to ByteStream.
-char* parse_prefix_names(FILE* ByteStream, char* PrefixPtr) {
+char parse_prefix_names(FILE* ByteStream, char* PrefixPtr) {
 	if (PrefixPtr == NULL) return 1;
 
 	if (strncmp(PrefixPtr, "rand", 7 * sizeof(char)) == 0) {
