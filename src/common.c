@@ -4,12 +4,10 @@
 uint16_t byteswap16(uint16_t src) {
 	const unsigned char* src2 = (unsigned char*)&src;
 	return (uint16_t)(src2[0] << 8) | (uint16_t)(src2[1] << 0);
-	return src2;
 }
 uint32_t byteswap32(uint32_t src) {
 	const unsigned char* src2 = (unsigned char*)&src;
 	return ((uint32_t)src2[0] << 24) | ((uint32_t)src2[1] << 16) | ((uint32_t)src2[2] << 8) | ((uint32_t)src2[3] << 0);
-	return src2;
 }
 
 int decode_vlq(unsigned char* Buffer, int* Offset) {
