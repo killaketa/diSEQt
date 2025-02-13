@@ -185,7 +185,7 @@ char* parse_notecmd(FILE* ByteStream, char* CmdPtr, char** Token, int* PrefixCon
 
 	int8_t base = 0;
 
-	if (CmdPtr[0] == 'c' & CmdPtr[0 == 'n']) {
+	if (CmdPtr[0] == 'c' & CmdPtr[1] == 'n') {
 		base = 0x00;
 	}
 	else if (CmdPtr[0] == 'c' & CmdPtr[1] == 's') {
@@ -227,7 +227,7 @@ char* parse_notecmd(FILE* ByteStream, char* CmdPtr, char** Token, int* PrefixCon
 
 	if (CmdPtr[2] != 'm') {
 		int8_t mult = CmdPtr[2] - 48; // subtract char by 48 to get its actual int value instead of ASCII.
-		base = base + ((mult + 1) * 12);
+		base = base + ((mult * 12));
 	}
 	fputc(base, ByteStream);
 
