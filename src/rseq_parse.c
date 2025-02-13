@@ -179,7 +179,7 @@ char* parse_prefix_names(FILE* ByteStream, char* PrefixPtr) {
 }
 
 // Parse note commands, done seperately to keep parse_command() shorter.
-char* parse_notecmd(FILE* ByteStream, char* CmdPtr, char** Token, int* PrefixControlsArgs) {
+char parse_notecmd(FILE* ByteStream, char* CmdPtr, char** Token, int* PrefixControlsArgs) {
 	if (CmdPtr == NULL) return 1;
 	char* EndPtr;
 
@@ -227,7 +227,7 @@ char* parse_notecmd(FILE* ByteStream, char* CmdPtr, char** Token, int* PrefixCon
 
 	if (CmdPtr[2] != 'm') {
 		int8_t mult = CmdPtr[2] - 48; // subtract char by 48 to get its actual int value instead of ASCII.
-		base = base + ((mult * 12));
+		base = base + ((mult + 1) * 12);
 	}
 	fputc(base, ByteStream);
 
