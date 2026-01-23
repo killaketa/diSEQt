@@ -3,6 +3,8 @@
 
 #define XMLSEQ_START_STRING "// Created by diSEQt\n// Program made by Keta\n// https://github.com/killaketa/diSEQt\n\n"
 
+#define TNCOMMAND_LABLEXCLUDE "le"
+
 #include <stdint.h>
 
 uint16_t byteswap16(uint16_t src);

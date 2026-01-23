@@ -9,7 +9,7 @@
 
 #define MICROSECONDS_TO_BPM(microseconds) round((1000000/microseconds)*60) // (MICROSECONDS_IN_SECOND / microseconds_per_beat_arg) * 60 = round(BPM)
 
-#define MIDIWAIT_TO_RSEQWAIT(MidiWaitTime) round(MidiWaitTime/2) // RSEQ wait time is equivilant to the MIDI wait time divided by 2.
+#define MIDIWAIT_TO_RSEQWAIT(MidiWaitTime) round(MidiWaitTime/2) // RSEQ wait time is equivalent to the MIDI wait time divided by 2.
 
 int decode_midi_ctrlmsg(unsigned char Byte, FILE* ByteStream) {
 	// Appendix 1.2 (Table of MIDI Controller Messages) https://midimusic.github.io/tech/midispec.html#BMA1_2
@@ -31,13 +31,18 @@ int decode_midi_ctrlmsg(unsigned char Byte, FILE* ByteStream) {
 }
 
 int decode_midi_metaevent(FILE* ByteStream) {
+	// not on the site but 0xFF 0x09 meta-event is Device Name.
+	// FF 09 1A "Default MIDI Output Device"
+	// FF 09 is the command, 1A is the length of the string "Default MIDI Output Device" in bytes (without null terminator).
+	// 1A (the length parameter) is a VLQ. please use decode_vlq_bytestream() to deal with it.
 
+	// attempt to reference https://www.mixagesoftware.com/en/midikit/help/HTML/meta_events.html for a more complete list of meta-events
 }
 
 // Last 4 bits of the command byte is the channel number the command corresponds to.
-int decode_midi_syscmd(unsigned char Byte, FILE* ByteStream) {
+int decode_midi_syscmd(unsigned char cmdbyte, FILE* ByteStream) {
 	// Appendix 1.1 (System Common Messages & System Real-Time Messages) https://midimusic.github.io/tech/midispec.html#BMA1_1
-	switch (Byte & 0xF) // switch case for 4 bits from MSB
+	switch (cmdbyte & 0xF) // switch case for 4 bits from MSB
 	{
 	default:
 		break;
@@ -84,11 +89,22 @@ int decode_midi_syscmd(unsigned char Byte, FILE* ByteStream) {
 	}
 }
 
-void decode_controller() {
+void decode_controller(unsigned char cmdbyte, FILE* ByteStream) { // Control Change command (1011 MSB in decode_midicmds())
+	unsigned char controller = fgetc(ByteStream);
+	unsigned char value = fgetc(ByteStream);
 
+	// Appendix 1.2 (Table of MIDI Controller Messages) https://midimusic.github.io/tech/midispec.html#BMA1_2
+	switch (controller) // switch case for first 4 bits of byte
+	{
+	default:
+		break;
+	case 0x00: { // Bank Select
+		break;
+	}
+	}
 }
 
-dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on successful detection of command (hence the long type)
+dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream, uint16_t TicksPerQNote) { // Return VLQ on successful detection of command (hence the long type)
 	long TrackOffset = 0; // 
 	long VLQ = decode_vlq_bytestream(ByteStream);
 	unsigned char cmdbyte = fgetc(ByteStream);
@@ -96,7 +112,7 @@ dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on 
 
 	dec_midi CmdStruct = { .VLQ = VLQ, .CmdByte = cmdbyte >> 4, .Key = 255 };
 
-	printf("%u\n", VLQ);
+	printf("%u %f\n", VLQ, round((VLQ / TicksPerQNote) * 48.0)); // (VLQ/TicksPerQNote)*48 converts MIDI ticks into RSEQ wait length (48 in rseq wait length is always a quarter note)
 
 	if (VLQ != 0) {
 		fprintf(TextStream, "\twait %ld\n",VLQ);
@@ -123,7 +139,7 @@ dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on 
 		dec_midi offCmdStruct = CmdStruct;
 
 		while (feof(ByteStream) == 0) {
-			offCmdStruct = decode_midicmds(ByteStream, TextStream);
+			offCmdStruct = decode_midicmds(ByteStream, TextStream, TicksPerQNote);
 			totalWaitVLQ += offCmdStruct.VLQ;
 
 			if (offCmdStruct.CmdByte == 0x8) {
@@ -145,8 +161,7 @@ dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on 
 		break;
 	}
 	case 0xB: { // 1011 Control Change: 0ccccccc 0vvvvvvv (c = controller value (defined in Appendix 1.2), v = new value)
-		unsigned char controller = fgetc(ByteStream);
-		unsigned char value = fgetc(ByteStream);
+		decode_controller(cmdbyte, ByteStream);
 		break;
 	}
 	case 0xC: { // 1100 Program Change: 0ppppppp (p = new program number)
@@ -163,7 +178,7 @@ dec_midi decode_midicmds(FILE* ByteStream, FILE* TextStream) { // Return VLQ on 
 		int pitch = (msb << 7) & lsb;
 		break;
 	}
-	case 0xF: // 1111 Escape to system messages + meta events.
+	case 0xF: // 1111 Escape to system messages (If LSB is 0x0F which makes cmdbyte 0xFF, then its a meta event escape).
 		decode_midi_syscmd(cmdbyte, ByteStream);
 		break;
 	}
@@ -216,6 +231,16 @@ void sort_skip_metaevent(FILE* ByteStream, unsigned char* cmdbyte, long MaxOffse
 		break;
 	}
 	case 0x07: {
+		long VLQ = decode_vlq_bytestream(ByteStream);
+		fseek(ByteStream, VLQ, SEEK_CUR);
+		break;
+	}
+	case 0x08: {
+		long VLQ = decode_vlq_bytestream(ByteStream);
+		fseek(ByteStream, VLQ, SEEK_CUR);
+		break;
+	}
+	case 0x09: {
 		long VLQ = decode_vlq_bytestream(ByteStream);
 		fseek(ByteStream, VLQ, SEEK_CUR);
 		break;
@@ -364,23 +389,26 @@ void decode_midi(const char* FilePath, char* DestTextPath) { // Keep in mind tha
 
 	uint16_t MIDIformat = 0;
 	uint16_t TracksNum = 0;
-	uint16_t BPM = 0;
+	uint16_t TicksPerQNote = 0;
+	// Ticks Per Quarter Note (EX. TicksPerQNote = 1024, then a decoded VLQ delta of 1024 is a quarter note)
+	// In RSEQ a length of 48 is a quarter note. To convert MIDI Delta to RSEQ Length do (VLQ/TicksPerQNote) * 48 and round up.
+
 	// Division var notes
 	// if the MSB of the uint16_t is 1 then it looks 7 bits past msb for the negative SMPTE format (-24, -25, -29, or -30 in int16 decimal). then bits 7-0 (7 to LSB) is the seconds per beat in microseconds.
 	// if the MSB of the uint16_t is 0 then the rest of the bits are used to make a uint16_t which represents the beats per minute.
 	fread(&MIDIformat, sizeof(uint16_t), 1, ByteStream);
 	fread(&TracksNum, sizeof(uint16_t), 1, ByteStream);
-	fread(&BPM, sizeof(uint16_t), 1, ByteStream);
+	fread(&TicksPerQNote, sizeof(uint16_t), 1, ByteStream);
 	MIDIformat = byteswap16(MIDIformat);
 	TracksNum = byteswap16(TracksNum);
-	BPM = byteswap16(BPM);
+	TicksPerQNote = byteswap16(TicksPerQNote);
 
-	if (BPM >= 0x8000) { // Check if MSB of BPM is 1. If so do some bitwise operations to grab the microseconds per beat and the negative SMPTE format.
+	if (TicksPerQNote >= 0x8000) { // Check if MSB of TicksPerQNote is 1. If so do some bitwise operations to grab the microseconds per beat and the negative SMPTE format.
 		perror("MIDI Division byte has an MSB of 1, negative SMPTE format operations are not supported at the moment.");
 		exit(0);
 	}
 
-	printf("%u %u %u\n", MIDIformat, TracksNum, BPM);
+	printf("%u %u %u\n", MIDIformat, TracksNum, TicksPerQNote);
 
 	fprintf(TextStream, XMLSEQ_START_STRING);
 

@@ -936,8 +936,8 @@ char* parse_textstream(FILE* TextStream, FILE* ByteStream, brseq_t BRSEQ) {
 	printf("%x\n", fgetc(ByteStream));
 	fputc(0xFF, ByteStream);
 
-	int IncompleteByteRowCount = ftell(ByteStream) % 16;
-	for (int i = 1; i <= 16 - IncompleteByteRowCount; i++) { // Fill in the end of the DATA section with 0x00 until a full row of 16 bytes is formed.
+	int IncompleteByteRowCount = ftell(ByteStream) % 32;
+	for (int i = 1; i <= 32 - IncompleteByteRowCount; i++) { // Fill in the end of the DATA section with 0x00 until a full row of 32 bytes is formed.
 		fputc(0x00, ByteStream);
 	}
 
@@ -960,7 +960,42 @@ char* parse_textstream(FILE* TextStream, FILE* ByteStream, brseq_t BRSEQ) {
 		fputc(0x00, ByteStream);
 	}
 
+	int LabelWriteCount = LabelsParsedCount;
+
 	for (int i = 0; i < LabelsParsedCount; i++) {
+		if (LabelsPtr[i].String[0] == '!' && LabelsPtr[i].String[1] == '{') { // Command name detected
+			int writeLabelData = 1;
+
+			char tmpStr[100];
+			strcpy(tmpStr, LabelsPtr[i].String);
+
+			if (strstr(tmpStr, "}") != NULL) {
+				strtok(tmpStr, "{");
+				char* cmd = strtok(NULL, "}");
+				char* name = strtok(NULL, "}");
+				// if LabelsPtr[i].String was "!{cmd|cmd2}Label-Name" then cmd = "cmd|cmd2", name = "Label-Name", and tmpStr = "!" as of this line
+				cmd = strtok(cmd, "|");
+
+				while (cmd != NULL) {
+					if (strcmp(cmd, TNCOMMAND_LABLEXCLUDE) == 0) {
+						writeLabelData = 0;
+						LabelWriteCount--;
+					}
+
+					cmd = strtok(NULL, "|");
+				}
+			}
+
+			if (writeLabelData == 0) { continue; }
+		}
+
+		int IncompleteByteRowCount = ftell(ByteStream) % 4;
+		if (IncompleteByteRowCount != 0) {
+			for (int i = 0; i < 4 - IncompleteByteRowCount; i++) { // Align every 16 bytes. Replicates original BRSEQ behavior & aligns cache lines better (supposedly)
+				fputc(0x00, ByteStream);
+			}
+		}
+
 		LabelsPtr[i].LabelOffset = ftell(ByteStream) - (BRSEQ.LABL_Offset + 0x08);
 
 		LabelsPtr[i].SndDATA_Offset = byteswap32(LabelsPtr[i].SndDATA_Offset);
@@ -968,20 +1003,19 @@ char* parse_textstream(FILE* TextStream, FILE* ByteStream, brseq_t BRSEQ) {
 		LabelsPtr[i].LabelOffset = byteswap32(LabelsPtr[i].LabelOffset);
 		fwrite(&LabelsPtr[i].SndDATA_Offset, sizeof(int32_t), 1, ByteStream);
 		fwrite(&LabelsPtr[i].StringLen, sizeof(int32_t), 1, ByteStream);
-		fseek(ByteStream, (BRSEQ.LABL_Offset + 0x0C) + (i * 4), SEEK_SET);
+		fwrite(LabelsPtr[i].String, strlen(LabelsPtr[i].String) * sizeof(char), 1, ByteStream);
+		fseek(ByteStream, (BRSEQ.LABL_Offset + 0x0C) + ((i - (LabelsParsedCount - LabelWriteCount)) * 4), SEEK_SET);
 		fwrite(&LabelsPtr[i].LabelOffset, sizeof(int32_t), 1, ByteStream);
 		fseek(ByteStream, 0, SEEK_END);
 		LabelsPtr[i].SndDATA_Offset = byteswap32(LabelsPtr[i].SndDATA_Offset);
 		LabelsPtr[i].StringLen = byteswap32(LabelsPtr[i].StringLen);
 		LabelsPtr[i].LabelOffset = byteswap32(LabelsPtr[i].LabelOffset);
-
-		fwrite(LabelsPtr[i].String, strlen(LabelsPtr[i].String) * sizeof(char), 1, ByteStream);
 	}
 
 	fseek(ByteStream, 0, SEEK_END);
 
-	IncompleteByteRowCount = ftell(ByteStream) % 16;
-	for (int i = 1; i <= 16 - IncompleteByteRowCount; i++) { // Fill in the end of the DATA section with 0x00 until a full row of 16 bytes is formed.
+	IncompleteByteRowCount = ftell(ByteStream) % 32;
+	for (int i = 1; i <= 32 - IncompleteByteRowCount; i++) { // Fill in the end of the LABL section with 0x00 until a full row of 32 bytes is formed.
 		fputc(0x00, ByteStream);
 	}
 
@@ -994,6 +1028,7 @@ char* parse_textstream(FILE* TextStream, FILE* ByteStream, brseq_t BRSEQ) {
 	BRSEQ.DATA_Size = byteswap32(BRSEQ.DATA_Size);
 	BRSEQ.LABL_Offset = byteswap32(BRSEQ.LABL_Offset);
 	BRSEQ.LABL_Size = byteswap32(BRSEQ.LABL_Size);
+	LabelWriteCount = byteswap32(LabelWriteCount);
 
 	fseek(ByteStream, 0x08, SEEK_SET);
 	fwrite(&FileLength, sizeof(int32_t), 1, ByteStream);
@@ -1014,6 +1049,8 @@ char* parse_textstream(FILE* TextStream, FILE* ByteStream, brseq_t BRSEQ) {
 	fseek(ByteStream, BRSEQ.LABL_Offset + 0x04, SEEK_SET);
 	fwrite(&BRSEQ.LABL_Size, sizeof(int32_t), 1, ByteStream);
 
+	fseek(ByteStream, BRSEQ.LABL_Offset + 0x08, SEEK_SET);
+	fwrite(&LabelWriteCount, sizeof(int32_t), 1, ByteStream);
 
 	free(CmdOffsetsPtr);
 	free(OffsetsPtr);
