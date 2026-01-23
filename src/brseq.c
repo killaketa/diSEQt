@@ -17,8 +17,6 @@ char* decode_DATASection(brseq_t* BRSEQ, LABLInfo_t* LABL, FILE* TextStream, int
 		}
 	}
 
-	printf("%u\n", LABL->LabelCount);
-
 	for (unsigned int i = 0; i < LABL->LabelCount; i++) {
 		fprintf(TextStream, "<newtrack name=\"%s\" dataoffset=\"%u\">\n", LABL->Labels[i].String, LABL->Labels[i].SndDATA_Offset);
 
